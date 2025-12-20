@@ -1,6 +1,42 @@
 {
   "links": [
     {
+      "id": 1766224376535,
+      "title": "英文大小写转换",
+      "url": "https://www.lddgo.net/string/lowerupper",
+      "category": "待开发的功能",
+      "description": "",
+      "favicon": "https://api.iowen.cn/favicon/www.lddgo.net.png",
+      "addedDate": "2025-12-20T09:52:56.535Z"
+    },
+    {
+      "id": 1766224338831,
+      "title": "比例换比例",
+      "url": "https://proportioncalculator.net/zh-CN.html",
+      "category": "待开发的功能",
+      "description": "比例计算",
+      "favicon": "https://api.iowen.cn/favicon/proportioncalculator.net.png",
+      "addedDate": "2025-12-20T09:52:18.831Z"
+    },
+    {
+      "id": 1766224301999,
+      "title": "颜色转换2",
+      "url": "https://www.bejson.com/colortool/16torgb/",
+      "category": "待开发的功能",
+      "description": "16进制转RGB颜色计算工具-Bejson.com",
+      "favicon": "https://api.iowen.cn/favicon/www.bejson.com.png",
+      "addedDate": "2025-12-20T09:51:41.999Z"
+    },
+    {
+      "id": 1766224245183,
+      "title": "颜色转换",
+      "url": "https://www.bejson.com/colortool/rgbto16/",
+      "category": "待开发的功能",
+      "description": "RGB转16进制颜色计算工具-Bejson.com",
+      "favicon": "https://api.iowen.cn/favicon/www.bejson.com.png",
+      "addedDate": "2025-12-20T09:50:45.183Z"
+    },
+    {
       "id": 1766195854955,
       "title": "windows/wsl",
       "url": "https://learn.microsoft.com/zh-cn/windows/wsl/",
@@ -824,6 +860,11 @@
       "id": "food",
       "name": "食物食物",
       "count": 2
+    },
+    {
+      "id": "待开发的功能",
+      "name": "待开发",
+      "count": 4
     }
   ],
   "countdownSettings": {
