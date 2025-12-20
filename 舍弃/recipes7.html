@@ -1,0 +1,2681 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YumeWork - 食谱管理系统</title>
+    
+    <!-- 依赖库 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent-color: #3b82f6;
+            --accent-hover: #2563eb;
+        }
+
+        /* 基础样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #1e293b;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            width: 90%;
+            max-width: 1000px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: modalFadeIn 0.3s ease;
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 导航样式 */
+        .header-nav {
+            display: flex;
+            gap: 0.25rem;
+        }
+        .nav-item {
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            color: var(--text-secondary, #94a3b8);
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .nav-item:hover {
+            color: var(--text-primary, #f1f5f9);
+            background-color: rgba(51, 65, 85, 0.5);
+        }
+        .nav-item.active {
+            color: var(--text-primary, #f1f5f9);
+            background-color: var(--accent-color, #3b82f6);
+        }
+        
+        /* 分类选择样式 */
+        .category-item {
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+            padding: 0.5rem 1rem !important;
+            margin: 0 !important;
+            cursor: pointer;
+        }
+        .category-item.category-active {
+            border-color: #3b82f6;
+            background-color: #3b82f6 !important;
+            color: white !important;
+        }
+        
+        /* 食谱卡片样式 */
+        .recipe-card {
+            transition: all 0.2s ease;
+            height: 100%;
+        }
+        .recipe-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .recipe-type-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .recipe-type-dish {
+            background-color: rgba(34, 197, 94, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        .recipe-type-soup {
+            background-color: rgba(59, 130, 246, 0.2);
+            color: #93c5fd;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        
+        /* 子分类标签样式 */
+        .subcategory-tag {
+            display: inline-block;
+            background-color: rgba(139, 92, 246, 0.15);
+            color: #a78bfa;
+            padding: 0.2rem 0.6rem;
+            margin: 0.2rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+        
+        /* 食材标签样式 */
+        .ingredient-tag {
+            display: inline-block;
+            background-color: rgba(59, 130, 246, 0.15);
+            color: #93c5fd;
+            padding: 0.2rem 0.6rem;
+            margin: 0.2rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        
+        /* 批量操作相关样式 */
+        .batch-toolbar {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 0.75rem;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            z-index: 999;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        
+        /* 后台列表样式 - 新增 */
+        .admin-list-container {
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 0.75rem;
+            border: 1px solid rgba(51, 65, 85, 0.5);
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+        
+        .admin-list-header {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background: rgba(30, 41, 59, 0.8);
+            border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+            font-weight: 600;
+            color: #94a3b8;
+            font-size: 0.875rem;
+        }
+        
+        .admin-list-item {
+            display: flex;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.3);
+            transition: background-color 0.2s;
+        }
+        
+        .admin-list-item:hover {
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+        
+        .admin-list-item:last-child {
+            border-bottom: none;
+        }
+        
+        .admin-list-checkbox {
+            width: 1.25rem;
+            height: 1.25rem;
+            margin-right: 1rem;
+            cursor: pointer;
+            accent-color: #3b82f6;
+        }
+        
+        .admin-list-image {
+            width: 80px;
+            height: 80px;
+            border-radius: 0.5rem;
+            background: #334155;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+            margin-right: 1.5rem;
+        }
+        
+        .admin-list-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .admin-list-content {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .admin-list-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            margin-bottom: 0.5rem;
+        }
+        
+        .admin-list-description {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .admin-list-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        
+        .admin-list-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-shrink: 0;
+        }
+        
+        .admin-list-actions button {
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        
+        /* 食谱操作按钮样式 */
+        .action-btn-view {
+            background-color: rgba(59, 130, 246, 0.1);
+            color: #93c5fd;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        
+        .action-btn-view:hover {
+            background-color: rgba(59, 130, 246, 0.2);
+        }
+        
+        .action-btn-edit {
+            background-color: rgba(34, 197, 94, 0.1);
+            color: #34d399;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        
+        .action-btn-edit:hover {
+            background-color: rgba(34, 197, 94, 0.2);
+        }
+        
+        .action-btn-delete {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        .action-btn-delete:hover {
+            background-color: rgba(239, 68, 68, 0.2);
+        }
+        
+        /* 批量编辑列表样式 - 优化为后台管理样式 */
+        .batch-list-container {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+            border: 1px solid #4b5563;
+            border-radius: 0.5rem;
+            background: rgba(30, 41, 59, 0.3);
+        }
+        
+        .batch-list-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid #4b5563;
+            transition: background-color 0.2s;
+        }
+        
+        .batch-list-item:last-child {
+            border-bottom: none;
+        }
+        
+        .batch-list-item:hover {
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+        
+        .batch-list-item.selected {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+        
+        .batch-list-checkbox {
+            margin-right: 1rem;
+            width: 1.25rem;
+            height: 1.25rem;
+        }
+        
+        .batch-list-image {
+            width: 80px;
+            height: 80px;
+            border-radius: 0.375rem;
+            background: #334155;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+            margin-right: 1rem;
+        }
+        
+        .batch-list-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .batch-list-content {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .batch-list-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            margin-bottom: 0.25rem;
+        }
+        
+        .batch-list-description {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+        
+        .batch-list-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        
+        .batch-list-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        /* 分类管理样式 */
+        .category-management-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid rgba(51, 65, 85, 0.3);
+        }
+        
+        .category-management-name {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #f1f5f9;
+        }
+        
+        .category-management-count {
+            font-size: 0.875rem;
+            color: #94a3b8;
+        }
+        
+        /* 确认模态框样式 */
+        .confirm-modal {
+            max-width: 400px;
+        }
+        
+        .confirm-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+        
+        /* Toast消息样式 */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(30, 41, 59, 0.95);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: toastSlideIn 0.3s ease;
+        }
+        @keyframes toastSlideIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        .toast-success {
+            border-left: 4px solid #10b981;
+        }
+        .toast-error {
+            border-left: 4px solid #ef4444;
+        }
+        .toast-info {
+            border-left: 4px solid #3b82f6;
+        }
+        
+        /* 加载状态 */
+        .loading-spinner {
+            display: inline-block;
+            width: 1.5rem;
+            height: 1.5rem;
+            border: 3px solid #f3f4f6;
+            border-radius: 50%;
+            border-top-color: #3b82f6;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* 图片相关样式 */
+        .recipe-image {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 0.5rem;
+            background-color: #334155;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            font-size: 3rem;
+        }
+        
+        /* 推荐菜谱区域 - 加大视觉效果 */
+        .recommendation-section {
+            margin-bottom: 2.5rem;
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+        }
+        
+        .recommendation-card {
+            background: rgba(30, 41, 59, 0.7);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            height: 100%;
+            border: 1px solid rgba(51, 65, 85, 0.5);
+            transition: all 0.3s ease;
+        }
+        
+        .recommendation-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+            border-color: rgba(59, 130, 246, 0.4);
+        }
+        
+        .recommendation-item {
+            padding: 1.25rem;
+            background: rgba(51, 65, 85, 0.3);
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+        
+        .recommendation-item:hover {
+            background: rgba(51, 65, 85, 0.5);
+            border-color: rgba(59, 130, 246, 0.3);
+            transform: translateX(5px);
+        }
+        
+        .recommendation-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .admin-list-item {
+                flex-wrap: wrap;
+            }
+            
+            .admin-list-image {
+                width: 60px;
+                height: 60px;
+            }
+            
+            .admin-list-actions {
+                width: 100%;
+                margin-top: 1rem;
+                justify-content: flex-end;
+            }
+            
+            .batch-list-item {
+                flex-wrap: wrap;
+            }
+            
+            .batch-list-image {
+                width: 60px;
+                height: 60px;
+            }
+            
+            .batch-list-actions {
+                width: 100%;
+                margin-top: 1rem;
+                justify-content: flex-end;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+    <!-- 顶部导航栏 -->
+    <header class="bg-gradient-to-r from-slate-800 to-slate-900 border-b border-slate-700 py-4">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between">
+                <!-- 左侧标题 -->
+                <div class="flex items-center">
+                    <i class="fas fa-moon text-blue-400 mr-3 text-xl"></i>
+                    <h1 class="text-xl font-semibold text-blue-400">YumeWork 食谱管理系统</h1>
+                </div>
+                
+                <!-- 中间导航 -->
+                <nav class="header-nav mx-4">
+                    <a href="index.html" class="nav-item mr-1"><i class="fas fa-link mr-1"></i>链接</a>
+                    <a href="notes.html" class="nav-item mr-1"><i class="fas fa-sticky-note mr-1"></i>笔记</a>
+                    <a href="recipes.html" class="nav-item active mr-1"><i class="fas fa-fish mr-1"></i>食谱</a>
+                </nav>
+
+                <!-- 右侧控制区 -->
+                <div class="flex items-center gap-4">
+                    <!-- 搜索框 -->
+                    <div class="hidden md:block">
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-search text-slate-400"></i>
+                            </div>
+                            <input type="text" id="searchInput" class="w-64 bg-slate-800 border border-slate-600 rounded-full pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors" placeholder="搜索食谱、食材...">
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                        <!-- 批量操作按钮 -->
+                        <button id="batchOperationBtn" class="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm transition-colors flex items-center" title="批量操作">
+                            <i class="fas fa-layer-group mr-1"></i> 批量操作
+                        </button>
+                        
+                        <!-- 分类管理按钮 -->
+                        <button id="manageCategoriesBtn" class="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm transition-colors flex items-center" title="分类管理">
+                            <i class="fas fa-tags mr-1"></i> 分类管理
+                        </button>
+                        
+                        <!-- 导出数据按钮 -->
+                        <button id="exportDataBtn" class="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition-colors flex items-center" title="导出数据">
+                            <i class="fas fa-file-export mr-1"></i> 导出
+                        </button>
+                        
+                        <!-- 当前日期时间 -->
+                        <div class="text-slate-400 text-sm ml-2">
+                            <span id="currentDate">--</span>
+                            <span id="currentTime" class="text-blue-300 ml-2">--:--:--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="flex-1 container mx-auto px-4 py-6">
+        <!-- 加载状态提示 -->
+        <div id="loadingState" class="text-center py-10">
+            <div class="loading-spinner mx-auto mb-3"></div>
+            <p class="text-slate-400">加载食谱中...</p>
+        </div>
+        
+        <!-- 智能推荐区域 - 加大视觉效果 -->
+        <div id="randomSection" class="recommendation-section mb-8 p-6 hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-blue-300 flex items-center">
+                    <i class="fas fa-fire-alt mr-3 text-2xl"></i> 今日智能推荐
+                    <span class="ml-3 text-sm bg-blue-600 text-white px-3 py-1 rounded-full">热门精选</span>
+                </h2>
+                <button id="refreshRandomBtn" class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg text-sm transition-all flex items-center shadow-lg hover:shadow-xl">
+                    <i class="fas fa-redo-alt mr-2"></i> 重新推荐
+                </button>
+            </div>
+            
+            <div id="comboRecommendation" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- 智能组合推荐内容会由JS动态填充 -->
+                <div class="text-slate-400 text-center py-10 col-span-2">
+                    <i class="fas fa-utensils text-5xl mb-4 opacity-50"></i>
+                    <p class="text-lg mb-2">点击"重新推荐"按钮，发现今日美味组合！</p>
+                    <p class="text-sm text-slate-500">系统将智能搭配菜谱与汤谱，为您推荐最佳组合</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分类筛选区域 -->
+        <div id="categorySection" class="mb-6 hidden">
+            <div class="flex flex-wrap gap-2 mb-4">
+                <div class="category-item px-4 py-2 rounded-full bg-blue-600 text-white flex items-center cursor-pointer" data-category="all" id="all-category">
+                    <span>全部食谱</span>
+                </div>
+                <div class="category-item px-4 py-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center cursor-pointer" data-category="dish">
+                    <span>美味菜谱</span>
+                </div>
+                <div class="category-item px-4 py-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center cursor-pointer" data-category="soup">
+                    <span>暖心汤谱</span>
+                </div>
+            </div>
+            
+            <!-- 子分类筛选区域 -->
+            <div id="subcategorySection" class="mb-4 hidden">
+                <h3 class="text-sm text-slate-400 mb-2">子分类筛选:</h3>
+                <div id="subcategoryList" class="flex flex-wrap gap-2">
+                    <!-- 子分类标签将动态生成 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 食谱后台列表展示区 -->
+        <div id="adminRecipesContainer" class="hidden">
+            <!-- 后台列表将通过JavaScript动态生成 -->
+        </div>
+        
+        <!-- 食谱网格展示区 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="recipes-container">
+            <!-- 食谱卡片将通过JavaScript动态生成 -->
+        </div>
+        
+        <!-- 无结果提示 -->
+        <div id="noResults" class="hidden text-center py-10">
+            <i class="fas fa-search text-slate-400 text-4xl mb-4"></i>
+            <p class="text-slate-400">没有找到匹配的食谱</p>
+            <button id="addFirstRecipeBtn" class="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors">
+                <i class="fas fa-plus mr-2"></i> 添加第一个食谱
+            </button>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-gradient-to-r from-slate-800 to-slate-900 border-t border-slate-700 py-4 mt-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex space-x-5 mb-3 md:mb-0">
+                    <a href="#" class="text-blue-400 hover:text-blue-300 text-sm transition-colors"><i class="fas fa-question-circle mr-1.5"></i> 帮助</a>
+                    <a href="#" class="text-blue-400 hover:text-blue-300 text-sm transition-colors"><i class="fas fa-shield-alt mr-1.5"></i> 隐私</a>
+                    <a href="#" class="text-blue-400 hover:text-blue-300 text-sm transition-colors"><i class="fas fa-file-contract mr-1.5"></i> 条款</a>
+                </div>
+                <div class="text-slate-400 text-sm">© 2025 YumeWork | 食谱管理系统 v2.0</div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 浮动添加按钮 -->
+    <button id="addRecipeBtn" class="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all z-40" title="添加食谱">
+        <i class="fas fa-plus text-xl"></i>
+    </button>
+
+    <!-- 批量操作工具栏 -->
+    <div id="batchToolbar" class="batch-toolbar hidden">
+        <div class="text-slate-300">
+            已选择 <span id="selectedCount" class="font-bold">0</span> 个食谱
+        </div>
+        <div class="flex gap-2">
+            <button id="batchEditBtn" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors flex items-center">
+                <i class="fas fa-edit mr-2"></i> 批量编辑
+            </button>
+            <button id="batchDeleteBtn" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors flex items-center">
+                <i class="fas fa-trash mr-2"></i> 批量删除
+            </button>
+            <button id="cancelBatchBtn" class="px-3 py-1.5 bg-slate-600 hover:bg-slate-700 text-white rounded-lg text-sm transition-colors">
+                取消
+            </button>
+        </div>
+    </div>
+
+    <!-- 食谱编辑/详情模态框 -->
+    <div id="recipeModal" class="modal">
+        <div class="modal-content">
+            <h2 id="recipeModalTitle" class="text-lg font-semibold text-blue-400 mb-4 flex items-center">
+                <i class="fas fa-plus-circle mr-2"></i> 添加新食谱
+            </h2>
+            <div class="space-y-4">
+                <input type="hidden" id="recipeId">
+                <input type="file" id="imageUploadInput" accept="image/*" style="display: none;">
+                
+                <!-- 图片上传区域 -->
+                <div>
+                    <label class="block text-slate-400 text-sm mb-2">食谱图片</label>
+                    <div class="mb-3">
+                        <div class="recipe-image" id="imagePreview">
+                            <div class="flex flex-col items-center justify-center h-full">
+                                <i class="fas fa-utensils text-4xl"></i>
+                                <span class="text-sm mt-2">暂无图片</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" id="uploadImageBtn" class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors flex items-center justify-center">
+                        <i class="fas fa-upload mr-2"></i> 上传图片
+                    </button>
+                    <input type="hidden" id="recipeImageData">
+                </div>
+                
+                <!-- 食谱标题 -->
+                <div>
+                    <label class="block text-slate-400 text-sm mb-2">食谱标题 *</label>
+                    <input type="text" id="recipeTitle" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors" placeholder="例如：红烧排骨" required>
+                </div>
+                
+                <!-- 食谱类型和子分类 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-slate-400 text-sm mb-2">食谱类型 *</label>
+                        <select id="recipeType" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors">
+                            <option value="dish">菜谱</option>
+                            <option value="soup">汤谱</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 text-sm mb-2">子分类</label>
+                        <input type="text" id="recipeSubcategory" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors" placeholder="例如：川菜、家常菜">
+                    </div>
+                </div>
+                
+                <!-- 准备时间和难度 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-slate-400 text-sm mb-2">准备时间 *</label>
+                        <input type="text" id="recipeTime" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors" placeholder="例如：60分钟" required>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 text-sm mb-2">难度</label>
+                        <select id="recipeDifficulty" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors">
+                            <option value="简单">简单</option>
+                            <option value="中等" selected>中等</option>
+                            <option value="困难">困难</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- 份量和评分 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-slate-400 text-sm mb-2">份量</label>
+                        <input type="text" id="recipeServings" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors" placeholder="例如：2-3人份">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 text-sm mb-2">评分 (1-5)</label>
+                        <select id="recipeRating" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors">
+                            <option value="5">★★★★★ (5)</option>
+                            <option value="4">★★★★☆ (4)</option>
+                            <option value="3" selected>★★★☆☆ (3)</option>
+                            <option value="2">★★☆☆☆ (2)</option>
+                            <option value="1">★☆☆☆☆ (1)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- 诱人简介 -->
+                <div>
+                    <label class="block text-slate-400 text-sm mb-2">诱人简介 *</label>
+                    <textarea id="recipeIntro" rows="2" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors" placeholder="用一两句话描述这道菜的特色..." required></textarea>
+                </div>
+                
+                <!-- 主要食材 -->
+                <div>
+                    <label class="block text-slate-400 text-sm mb-2">主要食材 * (每行一个或用逗号分隔)</label>
+                    <textarea id="recipeIngredients" rows="3" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors" placeholder="猪排骨&#10;生姜&#10;冰糖" required></textarea>
+                </div>
+                
+                <!-- 详细步骤 -->
+                <div>
+                    <label class="block text-slate-400 text-sm mb-2">详细步骤</label>
+                    <textarea id="recipeSteps" rows="5" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors" placeholder="1. 准备所有食材...&#10;2. 热锅凉油，爆香调料...&#10;3. 加入主料翻炒均匀..."></textarea>
+                </div>
+                
+                <!-- 操作按钮 -->
+                <div class="flex justify-between pt-4 border-t border-slate-700">
+                    <button id="deleteRecipeBtn" class="hidden px-4 py-2 text-red-400 hover:text-red-300 text-sm transition-colors">
+                        <i class="fas fa-trash mr-1"></i> 删除
+                    </button>
+                    <div class="flex space-x-3">
+                        <button id="cancelRecipeBtn" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-colors">
+                            取消
+                        </button>
+                        <button id="saveRecipeBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors flex items-center">
+                            <i class="fas fa-save mr-1"></i> 保存
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 批量编辑模态框 -->
+    <div id="batchEditModal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-lg font-semibold text-blue-400 mb-4 flex items-center">
+                <i class="fas fa-edit mr-2"></i> 批量编辑食谱
+            </h2>
+            <div class="space-y-4">
+                <p class="text-slate-300">批量编辑选中的 <span id="batchEditCount" class="font-semibold">0</span> 个食谱：</p>
+                
+                <!-- 批量编辑列表 -->
+                <div class="batch-list-container" id="batchEditList">
+                    <!-- 批量编辑的食谱列表将动态生成 -->
+                </div>
+                
+                <!-- 批量编辑选项 -->
+                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700">
+                    <h3 class="text-md font-medium text-slate-300 mb-3">批量编辑选项</h3>
+                    
+                    <!-- 批量更改类型 -->
+                    <div class="mb-4">
+                        <label class="block text-slate-400 text-sm mb-2">批量更改类型</label>
+                        <select id="batchEditType" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors">
+                            <option value="">不更改类型</option>
+                            <option value="dish">全部改为菜谱</option>
+                            <option value="soup">全部改为汤谱</option>
+                        </select>
+                    </div>
+                    
+                    <!-- 批量更改子分类 -->
+                    <div class="mb-4">
+                        <label class="block text-slate-400 text-sm mb-2">批量更改子分类</label>
+                        <input type="text" id="batchEditSubcategory" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors" placeholder="输入新的子分类">
+                    </div>
+                    
+                    <!-- 批量更改难度 -->
+                    <div class="mb-4">
+                        <label class="block text-slate-400 text-sm mb-2">批量更改难度</label>
+                        <select id="batchEditDifficulty" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors">
+                            <option value="">不更改难度</option>
+                            <option value="简单">全部改为简单</option>
+                            <option value="中等">全部改为中等</option>
+                            <option value="困难">全部改为困难</option>
+                        </select>
+                    </div>
+                    
+                    <!-- 批量更改评分 -->
+                    <div class="mb-4">
+                        <label class="block text-slate-400 text-sm mb-2">批量更改评分</label>
+                        <select id="batchEditRating" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors">
+                            <option value="">不更改评分</option>
+                            <option value="5">全部改为★★★★★</option>
+                            <option value="4">全部改为★★★★☆</option>
+                            <option value="3">全部改为★★★☆☆</option>
+                            <option value="2">全部改为★★☆☆☆</option>
+                            <option value="1">全部改为★☆☆☆☆</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- 操作按钮 -->
+                <div class="flex justify-end pt-4 border-t border-slate-700 gap-3">
+                    <button id="batchEditCancelBtn" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-colors">
+                        取消
+                    </button>
+                    <button id="batchEditConfirmBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors flex items-center">
+                        <i class="fas fa-check mr-2"></i> 确认更改
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分类管理模态框 -->
+    <div id="categoryManagementModal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-lg font-semibold text-purple-400 mb-4 flex items-center">
+                <i class="fas fa-tags mr-2"></i> 分类管理
+            </h2>
+            <div class="space-y-6">
+                <!-- 分类列表 -->
+                <div>
+                    <h3 class="text-md font-medium text-slate-300 mb-3">现有分类</h3>
+                    <div id="categoryManagementList" class="space-y-3">
+                        <!-- 分类列表将动态生成 -->
+                    </div>
+                </div>
+                
+                <!-- 添加新分类 -->
+                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700">
+                    <h3 class="text-md font-medium text-slate-300 mb-3">添加新分类</h3>
+                    <div class="mb-4">
+                        <label class="block text-slate-400 text-sm mb-2">分类名称 *</label>
+                        <input type="text" id="newCategoryName" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-purple-500 transition-colors" placeholder="例如：川菜、家常菜">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-slate-400 text-sm mb-2">分类类型</label>
+                        <select id="newCategoryType" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-purple-500 transition-colors">
+                            <option value="dish">菜谱分类</option>
+                            <option value="soup">汤谱分类</option>
+                            <option value="both">通用分类</option>
+                        </select>
+                    </div>
+                    <button id="addCategoryBtn" class="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm transition-colors flex items-center justify-center">
+                        <i class="fas fa-plus mr-2"></i> 添加分类
+                    </button>
+                </div>
+                
+                <!-- 操作按钮 -->
+                <div class="flex justify-end pt-4 border-t border-slate-700">
+                    <button id="closeCategoryManagementBtn" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-colors">
+                        关闭
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 确认删除模态框 -->
+    <div id="confirmDeleteModal" class="modal confirm-modal">
+        <div class="modal-content">
+            <h2 class="text-lg font-semibold text-red-400 mb-4 flex items-center">
+                <i class="fas fa-exclamation-triangle mr-2"></i> 确认删除
+            </h2>
+            <p id="confirmDeleteMessage" class="text-slate-300 mb-6">确定要删除这个食谱吗？此操作不可撤销。</p>
+            <div class="confirm-buttons">
+                <button id="confirmDeleteCancelBtn" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-colors">
+                    取消
+                </button>
+                <button id="confirmDeleteBtn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors">
+                    确认删除
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 确认批量删除模态框 -->
+    <div id="confirmBatchDeleteModal" class="modal confirm-modal">
+        <div class="modal-content">
+            <h2 class="text-lg font-semibold text-red-400 mb-4 flex items-center">
+                <i class="fas fa-exclamation-triangle mr-2"></i> 确认批量删除
+            </h2>
+            <p id="confirmBatchDeleteMessage" class="text-slate-300 mb-6">确定要删除选中的 <span id="batchDeleteCount" class="font-semibold">0</span> 个食谱吗？此操作不可撤销。</p>
+            <div class="confirm-buttons">
+                <button id="confirmBatchDeleteCancelBtn" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm transition-colors">
+                    取消
+                </button>
+                <button id="confirmBatchDeleteBtn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors">
+                    确认删除
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // 食谱数据结构
+        let recipesData = [];
+        let filteredRecipes = [];
+        let currentFilterType = 'all';
+        let currentSubcategoryFilter = '';
+        let currentSearchTerm = '';
+        let editingRecipeId = null;
+        let currentImageData = null;
+        
+        // 分类数据
+        let categories = [];
+        
+        // 批量操作相关变量
+        let isBatchMode = false;
+        let selectedRecipeIds = [];
+        let useAdminView = false; // 是否使用后台列表视图
+        
+        // 默认示例数据
+        const defaultRecipes = [
+            {
+                id: 1,
+                title: "红烧排骨",
+                type: "dish",
+                subcategory: "川菜",
+                intro: "色泽红亮，肉质酥烂，咸甜适口的经典家常菜，香气扑鼻令人垂涎欲滴。",
+                ingredients: ["猪排骨", "生姜", "大葱", "八角", "料酒", "生抽", "老抽", "冰糖"],
+                time: "60分钟",
+                difficulty: "中等",
+                servings: "2-3人份",
+                rating: 5,
+                imageData: null,
+                steps: "1. 排骨洗净，冷水下锅，加入料酒、姜片焯水去腥，捞出沥干\n2. 热锅凉油，放入冰糖小火炒至融化，呈焦糖色\n3. 加入排骨快速翻炒，使每块排骨均匀上色\n4. 放入姜片、葱段、八角炒出香味\n5. 加入生抽、老抽翻炒均匀，倒入热水没过排骨\n6. 大火烧开后转小火，盖上锅盖慢炖40分钟\n7. 最后开大火收汁，待汤汁浓稠即可出锅\n8. 装盘后撒上葱花点缀",
+                createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+                updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+            },
+            {
+                id: 2,
+                title: "番茄鸡蛋汤",
+                type: "soup",
+                subcategory: "家常汤",
+                intro: "简单快手，酸甜开胃，营养丰富的家常汤品，适合任何季节享用。",
+                ingredients: ["番茄", "鸡蛋", "小葱", "香油", "盐", "白胡椒粉"],
+                time: "15分钟",
+                difficulty: "简单",
+                servings: "2人份",
+                rating: 4,
+                imageData: null,
+                steps: "1. 番茄洗净，顶部划十字刀，用开水烫一下去皮，切小块\n2. 鸡蛋打入碗中，加少许盐打散备用\n3. 小葱洗净切葱花\n4. 锅中放少许油，油热后放入番茄块翻炒至出汁\n5. 加入适量清水，大火烧开\n6. 水开后转小火，慢慢淋入蛋液，形成漂亮的蛋花\n7. 加入盐和白胡椒粉调味，关火\n8. 撒上葱花，淋几滴香油即可",
+                createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+                updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
+            },
+            {
+                id: 3,
+                title: "麻婆豆腐",
+                type: "dish",
+                subcategory: "川菜",
+                intro: "麻辣鲜香，口感嫩滑的经典川菜，豆腐与肉末的完美结合。",
+                ingredients: ["嫩豆腐", "猪肉末", "豆瓣酱", "花椒粉", "姜末", "蒜末", "葱花"],
+                time: "30分钟",
+                difficulty: "中等",
+                servings: "2-3人份",
+                rating: 5,
+                imageData: null,
+                steps: "1. 豆腐切2厘米见方的小块，放入加盐的沸水中焯烫2分钟，捞出沥干\n2. 热锅凉油，放入猪肉末炒散至变色，盛出备用\n3. 锅中留底油，放入豆瓣酱小火炒出红油\n4. 加入姜末、蒜末炒香，倒入适量清水烧开\n5. 放入豆腐块，轻轻推匀，煮5分钟让豆腐入味\n6. 加入炒好的肉末，轻轻搅拌均匀\n7. 用水淀粉勾芡，使汤汁浓稠\n8. 出锅前撒上花椒粉和葱花",
+                createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+                updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+            },
+            {
+                id: 4,
+                title: "清蒸鲈鱼",
+                type: "dish",
+                subcategory: "粤菜",
+                intro: "肉质鲜嫩，味道鲜美，健康营养的清蒸菜肴，保留食材原汁原味。",
+                ingredients: ["鲈鱼", "生姜", "大葱", "红椒", "蒸鱼豉油", "料酒", "香菜"],
+                time: "25分钟",
+                difficulty: "中等",
+                servings: "2人份",
+                rating: 4,
+                imageData: null,
+                steps: "1. 鲈鱼处理干净，两面切花刀，用料酒和盐腌制10分钟\n2. 生姜、大葱、红椒切丝备用\n3. 鱼盘底部铺上姜片和葱段，放上鲈鱼\n4. 鱼身上放一些姜丝和葱丝\n5. 锅中水烧开，放入鱼盘，大火蒸8-10分钟\n6. 取出蒸好的鱼，倒掉盘中的汤汁\n7. 在鱼身上铺上葱丝、姜丝和红椒丝\n8. 淋上烧热的食用油，再淋上蒸鱼豉油即可",
+                createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+                updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
+            }
+        ];
+        
+        // 默认分类数据
+        const defaultCategories = [
+            { id: 1, name: "川菜", type: "dish", recipeCount: 2 },
+            { id: 2, name: "湘菜", type: "dish", recipeCount: 0 },
+            { id: 3, name: "家常菜", type: "dish", recipeCount: 1 },
+            { id: 4, name: "粤菜", type: "dish", recipeCount: 1 },
+            { id: 5, name: "家常汤", type: "soup", recipeCount: 1 },
+            { id: 6, name: "营养汤", type: "soup", recipeCount: 0 },
+            { id: 7, name: "快手菜", type: "both", recipeCount: 2 },
+            { id: 8, name: "下饭菜", type: "both", recipeCount: 2 }
+        ];
+
+        // DOM 元素引用
+        const recipesContainer = document.getElementById('recipes-container');
+        const adminRecipesContainer = document.getElementById('adminRecipesContainer');
+        const loadingState = document.getElementById('loadingState');
+        const randomSection = document.getElementById('randomSection');
+        const categorySection = document.getElementById('categorySection');
+        const subcategorySection = document.getElementById('subcategorySection');
+        const subcategoryList = document.getElementById('subcategoryList');
+        const comboRecommendation = document.getElementById('comboRecommendation');
+        const searchInput = document.getElementById('searchInput');
+        const refreshRandomBtn = document.getElementById('refreshRandomBtn');
+        const addRecipeBtn = document.getElementById('addRecipeBtn');
+        const addFirstRecipeBtn = document.getElementById('addFirstRecipeBtn');
+        const noResults = document.getElementById('noResults');
+        
+        // 模态框元素
+        const recipeModal = document.getElementById('recipeModal');
+        const batchEditModal = document.getElementById('batchEditModal');
+        const categoryManagementModal = document.getElementById('categoryManagementModal');
+        const confirmDeleteModal = document.getElementById('confirmDeleteModal');
+        const confirmBatchDeleteModal = document.getElementById('confirmBatchDeleteModal');
+        
+        // 食谱编辑表单元素
+        const recipeModalTitle = document.getElementById('recipeModalTitle');
+        const recipeIdInput = document.getElementById('recipeId');
+        const recipeTitleInput = document.getElementById('recipeTitle');
+        const recipeTypeSelect = document.getElementById('recipeType');
+        const recipeSubcategoryInput = document.getElementById('recipeSubcategory');
+        const recipeTimeInput = document.getElementById('recipeTime');
+        const recipeDifficultySelect = document.getElementById('recipeDifficulty');
+        const recipeServingsInput = document.getElementById('recipeServings');
+        const recipeRatingSelect = document.getElementById('recipeRating');
+        const recipeIntroInput = document.getElementById('recipeIntro');
+        const recipeIngredientsInput = document.getElementById('recipeIngredients');
+        const recipeStepsInput = document.getElementById('recipeSteps');
+        const saveRecipeBtn = document.getElementById('saveRecipeBtn');
+        const deleteRecipeBtn = document.getElementById('deleteRecipeBtn');
+        const cancelRecipeBtn = document.getElementById('cancelRecipeBtn');
+        const uploadImageBtn = document.getElementById('uploadImageBtn');
+        const imageUploadInput = document.getElementById('imageUploadInput');
+        const imagePreview = document.getElementById('imagePreview');
+        
+        // 批量操作元素
+        const batchOperationBtn = document.getElementById('batchOperationBtn');
+        const batchToolbar = document.getElementById('batchToolbar');
+        const selectedCount = document.getElementById('selectedCount');
+        const batchEditBtn = document.getElementById('batchEditBtn');
+        const batchDeleteBtn = document.getElementById('batchDeleteBtn');
+        const cancelBatchBtn = document.getElementById('cancelBatchBtn');
+        
+        // 批量编辑元素
+        const batchEditCount = document.getElementById('batchEditCount');
+        const batchEditList = document.getElementById('batchEditList');
+        const batchEditType = document.getElementById('batchEditType');
+        const batchEditSubcategory = document.getElementById('batchEditSubcategory');
+        const batchEditDifficulty = document.getElementById('batchEditDifficulty');
+        const batchEditRating = document.getElementById('batchEditRating');
+        const batchEditCancelBtn = document.getElementById('batchEditCancelBtn');
+        const batchEditConfirmBtn = document.getElementById('batchEditConfirmBtn');
+        
+        // 分类管理元素
+        const manageCategoriesBtn = document.getElementById('manageCategoriesBtn');
+        const categoryManagementList = document.getElementById('categoryManagementList');
+        const newCategoryName = document.getElementById('newCategoryName');
+        const newCategoryType = document.getElementById('newCategoryType');
+        const addCategoryBtn = document.getElementById('addCategoryBtn');
+        const closeCategoryManagementBtn = document.getElementById('closeCategoryManagementBtn');
+        
+        // 确认删除元素
+        const confirmDeleteMessage = document.getElementById('confirmDeleteMessage');
+        const confirmDeleteCancelBtn = document.getElementById('confirmDeleteCancelBtn');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        
+        // 确认批量删除元素
+        const confirmBatchDeleteMessage = document.getElementById('confirmBatchDeleteMessage');
+        const batchDeleteCount = document.getElementById('batchDeleteCount');
+        const confirmBatchDeleteCancelBtn = document.getElementById('confirmBatchDeleteCancelBtn');
+        const confirmBatchDeleteBtn = document.getElementById('confirmBatchDeleteBtn');
+        
+        // 导出数据按钮
+        const exportDataBtn = document.getElementById('exportDataBtn');
+
+        // 初始化应用
+        async function initApp() {
+            console.log('开始初始化食谱应用...');
+            
+            // 1. 初始化时间显示
+            initDateTime();
+            
+            // 2. 加载分类数据
+            await loadCategoriesData();
+            
+            // 3. 加载食谱数据
+            await loadRecipesData();
+            
+            // 4. 更新分类计数
+            updateCategoryCounts();
+            
+            // 5. 初始化事件监听
+            initEventListeners();
+            
+            // 6. 隐藏加载状态，显示内容
+            hideLoadingState();
+            
+            // 7. 渲染页面
+            renderRecipes();
+            updateComboRecommendation();
+            
+            console.log('食谱应用初始化完成，共加载', recipesData.length, '个食谱', categories.length, '个分类');
+        }
+
+        // 加载食谱数据
+        async function loadRecipesData() {
+            try {
+                const response = await fetch('recipesdata.json');
+                if (response.ok) {
+                    const data = await response.json();
+                    recipesData = data.recipes || defaultRecipes;
+                    console.log('从 recipesdata.json 加载成功，共', recipesData.length, '个食谱');
+                } else {
+                    throw new Error('JSON文件加载失败');
+                }
+            } catch (error) {
+                console.warn('使用默认食谱数据:', error.message);
+                recipesData = [...defaultRecipes];
+                console.log('使用默认食谱数据，共', recipesData.length, '个食谱');
+            }
+            
+            if (!recipesData || recipesData.length === 0) {
+                recipesData = [...defaultRecipes];
+            }
+        }
+
+        // 加载分类数据
+        async function loadCategoriesData() {
+            try {
+                const savedCategories = localStorage.getItem('recipe_categories');
+                if (savedCategories) {
+                    categories = JSON.parse(savedCategories);
+                    console.log('从本地存储加载分类成功，共', categories.length, '个分类');
+                } else {
+                    categories = [...defaultCategories];
+                    saveCategoriesToLocalStorage();
+                    console.log('使用默认分类数据，共', categories.length, '个分类');
+                }
+            } catch (error) {
+                console.warn('加载分类数据失败:', error.message);
+                categories = [...defaultCategories];
+                saveCategoriesToLocalStorage();
+            }
+        }
+
+        // 保存分类到本地存储
+        function saveCategoriesToLocalStorage() {
+            try {
+                localStorage.setItem('recipe_categories', JSON.stringify(categories));
+                console.log('分类数据已保存到本地存储');
+            } catch (error) {
+                console.error('保存分类到本地存储失败:', error);
+            }
+        }
+
+        // 更新分类中的食谱计数
+        function updateCategoryCounts() {
+            categories.forEach(cat => {
+                cat.recipeCount = 0;
+            });
+            
+            recipesData.forEach(recipe => {
+                if (recipe.subcategory) {
+                    const subcategories = recipe.subcategory.split(/[,，]/).map(s => s.trim());
+                    subcategories.forEach(subcatName => {
+                        const cat = categories.find(c => c.name === subcatName && (c.type === recipe.type || c.type === 'both'));
+                        if (cat) {
+                            cat.recipeCount++;
+                        }
+                    });
+                }
+            });
+            
+            saveCategoriesToLocalStorage();
+        }
+
+        // 初始化事件监听器
+        function initEventListeners() {
+            // 分类筛选
+            document.querySelectorAll('.category-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    document.querySelectorAll('.category-item').forEach(i => {
+                        i.classList.remove('bg-blue-600', 'text-white');
+                        i.classList.add('bg-slate-800', 'text-slate-200');
+                    });
+                    
+                    this.classList.add('bg-blue-600', 'text-white');
+                    this.classList.remove('bg-slate-800', 'text-slate-200');
+                    
+                    currentFilterType = this.dataset.category;
+                    currentSubcategoryFilter = '';
+                    
+                    // 切换到全部食谱时使用后台列表视图
+                    if (currentFilterType === 'all') {
+                        useAdminView = true;
+                    } else {
+                        useAdminView = false;
+                    }
+                    
+                    renderRecipes();
+                    updateSubcategoryFilter();
+                });
+            });
+
+            // 智能推荐按钮
+            refreshRandomBtn.addEventListener('click', updateComboRecommendation);
+
+            // 添加食谱按钮
+            addRecipeBtn.addEventListener('click', () => openRecipeModal());
+            
+            if (addFirstRecipeBtn) {
+                addFirstRecipeBtn.addEventListener('click', () => openRecipeModal());
+            }
+
+            // 搜索功能
+            searchInput.addEventListener('input', function(e) {
+                currentSearchTerm = e.target.value.trim().toLowerCase();
+                renderRecipes();
+            });
+
+            // 保存食谱
+            saveRecipeBtn.addEventListener('click', saveRecipe);
+
+            // 删除食谱
+            deleteRecipeBtn.addEventListener('click', function() {
+                if (editingRecipeId) {
+                    openConfirmDeleteModal(editingRecipeId);
+                }
+            });
+
+            // 取消编辑
+            cancelRecipeBtn.addEventListener('click', () => closeRecipeModal());
+
+            // 图片上传
+            uploadImageBtn.addEventListener('click', () => imageUploadInput.click());
+            imageUploadInput.addEventListener('change', handleImageUpload);
+
+            // 批量操作按钮
+            batchOperationBtn.addEventListener('click', function() {
+                // 切换到全部食谱视图
+                document.querySelectorAll('.category-item').forEach(i => {
+                    i.classList.remove('bg-blue-600', 'text-white');
+                    i.classList.add('bg-slate-800', 'text-slate-200');
+                });
+                
+                document.getElementById('all-category').classList.add('bg-blue-600', 'text-white');
+                document.getElementById('all-category').classList.remove('bg-slate-800', 'text-slate-200');
+                
+                currentFilterType = 'all';
+                currentSubcategoryFilter = '';
+                useAdminView = true;
+                
+                enterBatchMode();
+            });
+            
+            // 批量编辑按钮
+            batchEditBtn.addEventListener('click', openBatchEditModal);
+            
+            // 批量删除按钮
+            batchDeleteBtn.addEventListener('click', openConfirmBatchDeleteModal);
+            
+            // 取消批量操作
+            cancelBatchBtn.addEventListener('click', exitBatchMode);
+            
+            // 批量编辑取消按钮
+            batchEditCancelBtn.addEventListener('click', () => batchEditModal.style.display = 'none');
+            
+            // 批量编辑确认按钮
+            batchEditConfirmBtn.addEventListener('click', batchEditRecipes);
+            
+            // 分类管理按钮
+            manageCategoriesBtn.addEventListener('click', openCategoryManagementModal);
+            
+            // 添加分类按钮
+            addCategoryBtn.addEventListener('click', addCategory);
+            
+            // 关闭分类管理按钮
+            closeCategoryManagementBtn.addEventListener('click', () => categoryManagementModal.style.display = 'none');
+            
+            // 确认删除取消按钮
+            confirmDeleteCancelBtn.addEventListener('click', () => confirmDeleteModal.style.display = 'none');
+            
+            // 确认删除按钮
+            confirmDeleteBtn.addEventListener('click', confirmDeleteRecipe);
+            
+            // 确认批量删除取消按钮
+            confirmBatchDeleteCancelBtn.addEventListener('click', () => confirmBatchDeleteModal.style.display = 'none');
+            
+            // 确认批量删除按钮
+            confirmBatchDeleteBtn.addEventListener('click', confirmBatchDeleteRecipes);
+            
+            // 导出数据按钮
+            exportDataBtn.addEventListener('click', exportData);
+            
+            // 点击模态框外部关闭
+            window.addEventListener('click', function(e) {
+                if (e.target === recipeModal) closeRecipeModal();
+                if (e.target === batchEditModal) batchEditModal.style.display = 'none';
+                if (e.target === categoryManagementModal) categoryManagementModal.style.display = 'none';
+                if (e.target === confirmDeleteModal) confirmDeleteModal.style.display = 'none';
+                if (e.target === confirmBatchDeleteModal) confirmBatchDeleteModal.style.display = 'none';
+            });
+        }
+
+        // 更新子分类筛选区域
+        function updateSubcategoryFilter() {
+            subcategoryList.innerHTML = '';
+            
+            if (currentFilterType === 'all') {
+                subcategorySection.classList.add('hidden');
+                return;
+            }
+            
+            const filteredCategories = categories.filter(cat => 
+                (cat.type === currentFilterType || cat.type === 'both') && cat.recipeCount > 0
+            );
+            
+            if (filteredCategories.length === 0) {
+                subcategorySection.classList.add('hidden');
+                return;
+            }
+            
+            subcategorySection.classList.remove('hidden');
+            
+            const allSubcategory = document.createElement('span');
+            allSubcategory.className = `subcategory-tag ${currentSubcategoryFilter === '' ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-200'} cursor-pointer px-3 py-1 rounded-full text-sm`;
+            allSubcategory.textContent = '全部';
+            allSubcategory.addEventListener('click', function() {
+                currentSubcategoryFilter = '';
+                renderRecipes();
+                updateSubcategoryFilter();
+            });
+            subcategoryList.appendChild(allSubcategory);
+            
+            filteredCategories.forEach(cat => {
+                const badge = document.createElement('span');
+                badge.className = `subcategory-tag ${currentSubcategoryFilter === cat.name ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-200'} cursor-pointer px-3 py-1 rounded-full text-sm`;
+                badge.textContent = `${cat.name} (${cat.recipeCount})`;
+                badge.addEventListener('click', function() {
+                    currentSubcategoryFilter = cat.name;
+                    renderRecipes();
+                    updateSubcategoryFilter();
+                });
+                subcategoryList.appendChild(badge);
+            });
+        }
+
+        // 进入批量操作模式
+        function enterBatchMode() {
+            isBatchMode = true;
+            selectedRecipeIds = [];
+            updateSelectedCount();
+            batchToolbar.classList.remove('hidden');
+            useAdminView = true;
+            renderRecipes();
+            showToast('已进入批量操作模式，请选择要操作的食谱', 'info');
+        }
+
+        // 退出批量操作模式
+        function exitBatchMode() {
+            isBatchMode = false;
+            selectedRecipeIds = [];
+            batchToolbar.classList.add('hidden');
+            renderRecipes();
+            showToast('已退出批量操作模式', 'info');
+        }
+
+        // 更新选中数量显示
+        function updateSelectedCount() {
+            selectedCount.textContent = selectedRecipeIds.length;
+        }
+
+        // 处理食谱复选框选择
+        function handleRecipeCheckboxChange(recipeId, isChecked) {
+            if (isChecked) {
+                if (!selectedRecipeIds.includes(recipeId)) {
+                    selectedRecipeIds.push(recipeId);
+                }
+            } else {
+                const index = selectedRecipeIds.indexOf(recipeId);
+                if (index > -1) {
+                    selectedRecipeIds.splice(index, 1);
+                }
+            }
+            updateSelectedCount();
+        }
+
+        // 打开批量编辑模态框
+        function openBatchEditModal() {
+            if (selectedRecipeIds.length === 0) {
+                showToast('请先选择要编辑的食谱', 'error');
+                return;
+            }
+            
+            batchEditCount.textContent = selectedRecipeIds.length;
+            
+            batchEditList.innerHTML = '';
+            
+            selectedRecipeIds.forEach(recipeId => {
+                const recipe = recipesData.find(r => r.id === recipeId);
+                if (recipe) {
+                    const item = document.createElement('div');
+                    item.className = 'batch-list-item';
+                    item.dataset.id = recipe.id;
+                    
+                    const imageHtml = recipe.imageData ? 
+                        `<img src="${recipe.imageData}" alt="${recipe.title}">` :
+                        `<i class="fas fa-utensils text-slate-400 text-2xl"></i>`;
+                    
+                    item.innerHTML = `
+                        <input type="checkbox" class="batch-list-checkbox" checked data-id="${recipe.id}">
+                        <div class="batch-list-image">
+                            ${imageHtml}
+                        </div>
+                        <div class="batch-list-content">
+                            <div class="batch-list-title">${recipe.title}</div>
+                            <div class="batch-list-description">${recipe.intro}</div>
+                            <div class="batch-list-meta">
+                                <span>${recipe.type === 'dish' ? '菜谱' : '汤谱'}</span>
+                                <span>${recipe.time}</span>
+                                <span>${recipe.difficulty}</span>
+                                <span>${'★'.repeat(recipe.rating || 3)}</span>
+                            </div>
+                        </div>
+                        <div class="batch-list-actions">
+                            <button class="view-recipe-btn px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm" data-id="${recipe.id}">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="edit-recipe-btn px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm" data-id="${recipe.id}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </div>
+                    `;
+                    
+                    batchEditList.appendChild(item);
+                }
+            });
+            
+            // 重置表单
+            batchEditType.value = '';
+            batchEditSubcategory.value = '';
+            batchEditDifficulty.value = '';
+            batchEditRating.value = '';
+            
+            batchEditModal.style.display = 'flex';
+            
+            // 为查看按钮添加事件
+            document.querySelectorAll('.view-recipe-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const recipeId = this.dataset.id;
+                    const recipe = recipesData.find(r => r.id == recipeId);
+                    if (recipe) {
+                        openRecipeModal(recipe, true);
+                    }
+                });
+            });
+            
+            // 为编辑按钮添加事件
+            document.querySelectorAll('.edit-recipe-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const recipeId = this.dataset.id;
+                    const recipe = recipesData.find(r => r.id == recipeId);
+                    if (recipe) {
+                        openRecipeModal(recipe);
+                        batchEditModal.style.display = 'none';
+                    }
+                });
+            });
+            
+            // 为复选框添加事件
+            document.querySelectorAll('.batch-list-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const recipeId = parseInt(this.dataset.id);
+                    if (!this.checked) {
+                        const index = selectedRecipeIds.indexOf(recipeId);
+                        if (index > -1) {
+                            selectedRecipeIds.splice(index, 1);
+                            updateSelectedCount();
+                            batchEditCount.textContent = selectedRecipeIds.length;
+                            this.closest('.batch-list-item').remove();
+                        }
+                    }
+                });
+            });
+        }
+
+        // 批量编辑食谱
+        function batchEditRecipes() {
+            const type = batchEditType.value;
+            const subcategory = batchEditSubcategory.value.trim();
+            const difficulty = batchEditDifficulty.value;
+            const rating = batchEditRating.value;
+            
+            let changesMade = false;
+            
+            selectedRecipeIds.forEach(recipeId => {
+                const recipe = recipesData.find(r => r.id === recipeId);
+                if (recipe) {
+                    if (type && recipe.type !== type) {
+                        recipe.type = type;
+                        changesMade = true;
+                    }
+                    
+                    if (subcategory && recipe.subcategory !== subcategory) {
+                        recipe.subcategory = subcategory;
+                        changesMade = true;
+                    }
+                    
+                    if (difficulty && recipe.difficulty !== difficulty) {
+                        recipe.difficulty = difficulty;
+                        changesMade = true;
+                    }
+                    
+                    if (rating && recipe.rating != rating) {
+                        recipe.rating = parseInt(rating);
+                        changesMade = true;
+                    }
+                    
+                    if (changesMade) {
+                        recipe.updatedAt = new Date().toISOString();
+                    }
+                }
+            });
+            
+            if (changesMade) {
+                updateCategoryCounts();
+                renderRecipes();
+                updateComboRecommendation();
+                updateSubcategoryFilter();
+                
+                batchEditModal.style.display = 'none';
+                exitBatchMode();
+                
+                showToast(`已成功批量编辑 ${selectedRecipeIds.length} 个食谱`, 'success');
+            } else {
+                showToast('没有进行任何更改', 'info');
+            }
+        }
+
+        // 打开分类管理模态框
+        function openCategoryManagementModal() {
+            renderCategoryManagementList();
+            categoryManagementModal.style.display = 'flex';
+        }
+
+        // 渲染分类管理列表
+        function renderCategoryManagementList() {
+            categoryManagementList.innerHTML = '';
+            
+            if (categories.length === 0) {
+                categoryManagementList.innerHTML = '<div class="text-slate-400 text-center py-4">暂无分类</div>';
+                return;
+            }
+            
+            categories.forEach(category => {
+                const item = document.createElement('div');
+                item.className = 'category-management-item';
+                
+                let typeText = '';
+                let typeColor = '';
+                switch(category.type) {
+                    case 'dish': 
+                        typeText = '菜谱';
+                        typeColor = 'text-green-400';
+                        break;
+                    case 'soup': 
+                        typeText = '汤谱';
+                        typeColor = 'text-blue-400';
+                        break;
+                    case 'both': 
+                        typeText = '通用';
+                        typeColor = 'text-purple-400';
+                        break;
+                }
+                
+                item.innerHTML = `
+                    <div>
+                        <div class="category-management-name">${category.name}</div>
+                        <div class="flex items-center gap-2">
+                            <span class="category-management-count">${category.recipeCount}个食谱</span>
+                            <span class="${typeColor} text-xs">${typeText}</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="edit-category-btn px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm" data-id="${category.id}">
+                            编辑
+                        </button>
+                        <button class="delete-category-btn px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm" data-id="${category.id}" ${category.recipeCount > 0 ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>
+                            删除
+                        </button>
+                    </div>
+                `;
+                
+                categoryManagementList.appendChild(item);
+            });
+            
+            // 为编辑和删除按钮添加事件
+            document.querySelectorAll('.edit-category-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const categoryId = parseInt(this.dataset.id);
+                    editCategory(categoryId);
+                });
+            });
+            
+            document.querySelectorAll('.delete-category-btn').forEach(btn => {
+                if (!btn.disabled) {
+                    btn.addEventListener('click', function() {
+                        const categoryId = parseInt(this.dataset.id);
+                        deleteCategory(categoryId);
+                    });
+                }
+            });
+        }
+
+        // 添加分类
+        function addCategory() {
+            const name = newCategoryName.value.trim();
+            const type = newCategoryType.value;
+            
+            if (!name) {
+                showToast('请输入分类名称', 'error');
+                return;
+            }
+            
+            const existingCategory = categories.find(cat => 
+                cat.name.toLowerCase() === name.toLowerCase()
+            );
+            
+            if (existingCategory) {
+                showToast(`已存在名为"${name}"的分类`, 'error');
+                return;
+            }
+            
+            const newCategory = {
+                id: Date.now(),
+                name: name,
+                type: type,
+                recipeCount: 0
+            };
+            
+            categories.push(newCategory);
+            saveCategoriesToLocalStorage();
+            
+            newCategoryName.value = '';
+            
+            renderCategoryManagementList();
+            updateSubcategoryFilter();
+            
+            showToast(`分类"${name}"已添加`, 'success');
+        }
+
+        // 编辑分类
+        function editCategory(categoryId) {
+            const category = categories.find(cat => cat.id === categoryId);
+            if (!category) return;
+            
+            const newName = prompt(`编辑分类名称 (当前: ${category.name}):`, category.name);
+            if (!newName || !newName.trim() || newName.trim() === category.name) return;
+            
+            const existingCategory = categories.find(cat => 
+                cat.id !== categoryId && 
+                cat.name.toLowerCase() === newName.trim().toLowerCase()
+            );
+            
+            if (existingCategory) {
+                showToast(`已存在名为"${newName}"的分类`, 'error');
+                return;
+            }
+            
+            const oldName = category.name;
+            category.name = newName.trim();
+            
+            // 更新所有使用该分类的食谱
+            recipesData.forEach(recipe => {
+                if (recipe.subcategory && recipe.subcategory.includes(oldName)) {
+                    recipe.subcategory = recipe.subcategory.replace(oldName, newName.trim());
+                    recipe.updatedAt = new Date().toISOString();
+                }
+            });
+            
+            saveCategoriesToLocalStorage();
+            updateCategoryCounts();
+            
+            renderCategoryManagementList();
+            renderRecipes();
+            updateSubcategoryFilter();
+            
+            showToast(`分类已更新: ${oldName} → ${newName}`, 'success');
+        }
+
+        // 删除分类
+        function deleteCategory(categoryId) {
+            const category = categories.find(cat => cat.id === categoryId);
+            if (!category) return;
+            
+            if (category.recipeCount > 0) {
+                showToast(`无法删除，该分类被${category.recipeCount}个食谱使用`, 'error');
+                return;
+            }
+            
+            if (confirm(`确定要删除分类 "${category.name}" 吗？`)) {
+                const index = categories.findIndex(cat => cat.id === categoryId);
+                if (index !== -1) {
+                    categories.splice(index, 1);
+                }
+                
+                saveCategoriesToLocalStorage();
+                renderCategoryManagementList();
+                updateSubcategoryFilter();
+                
+                showToast(`分类 "${category.name}" 已删除`, 'success');
+            }
+        }
+
+        // 打开确认删除模态框
+        function openConfirmDeleteModal(recipeId) {
+            const recipe = recipesData.find(r => r.id == recipeId);
+            if (!recipe) return;
+            
+            editingRecipeId = recipeId;
+            confirmDeleteMessage.textContent = `确定要删除食谱 "${recipe.title}" 吗？此操作不可撤销。`;
+            confirmDeleteModal.style.display = 'flex';
+        }
+
+        // 确认删除食谱
+        function confirmDeleteRecipe() {
+            if (editingRecipeId) {
+                const index = recipesData.findIndex(r => r.id == editingRecipeId);
+                if (index !== -1) {
+                    const recipeTitle = recipesData[index].title;
+                    recipesData.splice(index, 1);
+                    
+                    updateCategoryCounts();
+                    renderRecipes();
+                    updateComboRecommendation();
+                    updateSubcategoryFilter();
+                    
+                    confirmDeleteModal.style.display = 'none';
+                    recipeModal.style.display = 'none';
+                    editingRecipeId = null;
+                    
+                    showToast(`食谱 "${recipeTitle}" 已删除`, 'success');
+                }
+            }
+        }
+
+        // 打开确认批量删除模态框
+        function openConfirmBatchDeleteModal() {
+            if (selectedRecipeIds.length === 0) {
+                showToast('请先选择要删除的食谱', 'error');
+                return;
+            }
+            
+            batchDeleteCount.textContent = selectedRecipeIds.length;
+            confirmBatchDeleteModal.style.display = 'flex';
+        }
+
+        // 确认批量删除食谱
+        function confirmBatchDeleteRecipes() {
+            const count = selectedRecipeIds.length;
+            
+            recipesData = recipesData.filter(recipe => !selectedRecipeIds.includes(recipe.id));
+            
+            updateCategoryCounts();
+            renderRecipes();
+            updateComboRecommendation();
+            updateSubcategoryFilter();
+            
+            confirmBatchDeleteModal.style.display = 'none';
+            exitBatchMode();
+            
+            showToast(`已成功删除 ${count} 个食谱`, 'success');
+        }
+
+        // 处理图片上传
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (!file.type.match('image.*')) {
+                showToast('请选择图片文件', 'error');
+                return;
+            }
+            
+            if (file.size > 2 * 1024 * 1024) {
+                showToast('图片大小不能超过2MB', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentImageData = e.target.result;
+                updateImagePreview(currentImageData);
+                showToast('图片上传成功', 'success');
+            };
+            reader.readAsDataURL(file);
+            
+            event.target.value = '';
+        }
+
+        // 更新图片预览
+        function updateImagePreview(imageData) {
+            imagePreview.innerHTML = '';
+            imagePreview.style.backgroundImage = `url(${imageData})`;
+            imagePreview.style.backgroundSize = 'cover';
+            imagePreview.style.backgroundPosition = 'center';
+            imagePreview.style.backgroundRepeat = 'no-repeat';
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-8 h-8 flex items-center justify-center';
+            removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+            removeBtn.onclick = function(e) {
+                e.stopPropagation();
+                currentImageData = null;
+                resetImagePreview();
+            };
+            
+            imagePreview.style.position = 'relative';
+            imagePreview.appendChild(removeBtn);
+        }
+
+        // 重置图片预览
+        function resetImagePreview() {
+            imagePreview.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full">
+                    <i class="fas fa-utensils text-4xl"></i>
+                    <span class="text-sm mt-2">暂无图片</span>
+                </div>
+            `;
+            imagePreview.style.backgroundImage = 'none';
+        }
+
+        // 打开食谱编辑模态框
+        function openRecipeModal(recipe = null, viewOnly = false) {
+            if (recipe) {
+                editingRecipeId = recipe.id;
+                recipeModalTitle.innerHTML = `<i class="fas fa-edit mr-2"></i> ${viewOnly ? '查看' : '编辑'}食谱`;
+                recipeIdInput.value = recipe.id;
+                recipeTitleInput.value = recipe.title;
+                recipeTypeSelect.value = recipe.type;
+                recipeSubcategoryInput.value = recipe.subcategory || '';
+                recipeTimeInput.value = recipe.time;
+                recipeDifficultySelect.value = recipe.difficulty || '中等';
+                recipeServingsInput.value = recipe.servings || '';
+                recipeRatingSelect.value = recipe.rating || '3';
+                recipeIntroInput.value = recipe.intro;
+                recipeIngredientsInput.value = recipe.ingredients.join('\n');
+                recipeStepsInput.value = recipe.steps || '';
+                
+                if (recipe.imageData) {
+                    currentImageData = recipe.imageData;
+                    updateImagePreview(recipe.imageData);
+                } else {
+                    currentImageData = null;
+                    resetImagePreview();
+                }
+                
+                deleteRecipeBtn.classList.remove('hidden');
+                
+                if (viewOnly) {
+                    // 查看模式，禁用所有输入
+                    recipeTitleInput.disabled = true;
+                    recipeTypeSelect.disabled = true;
+                    recipeSubcategoryInput.disabled = true;
+                    recipeTimeInput.disabled = true;
+                    recipeDifficultySelect.disabled = true;
+                    recipeServingsInput.disabled = true;
+                    recipeRatingSelect.disabled = true;
+                    recipeIntroInput.disabled = true;
+                    recipeIngredientsInput.disabled = true;
+                    recipeStepsInput.disabled = true;
+                    uploadImageBtn.disabled = true;
+                    saveRecipeBtn.style.display = 'none';
+                    deleteRecipeBtn.style.display = 'none';
+                } else {
+                    // 编辑模式，启用所有输入
+                    recipeTitleInput.disabled = false;
+                    recipeTypeSelect.disabled = false;
+                    recipeSubcategoryInput.disabled = false;
+                    recipeTimeInput.disabled = false;
+                    recipeDifficultySelect.disabled = false;
+                    recipeServingsInput.disabled = false;
+                    recipeRatingSelect.disabled = false;
+                    recipeIntroInput.disabled = false;
+                    recipeIngredientsInput.disabled = false;
+                    recipeStepsInput.disabled = false;
+                    uploadImageBtn.disabled = false;
+                    saveRecipeBtn.style.display = 'flex';
+                    deleteRecipeBtn.style.display = 'block';
+                }
+            } else {
+                editingRecipeId = null;
+                recipeModalTitle.innerHTML = '<i class="fas fa-plus-circle mr-2"></i> 添加新食谱';
+                recipeIdInput.value = '';
+                recipeTitleInput.value = '';
+                recipeTypeSelect.value = 'dish';
+                recipeSubcategoryInput.value = '';
+                recipeTimeInput.value = '';
+                recipeDifficultySelect.value = '中等';
+                recipeServingsInput.value = '';
+                recipeRatingSelect.value = '3';
+                recipeIntroInput.value = '';
+                recipeIngredientsInput.value = '';
+                recipeStepsInput.value = '';
+                
+                currentImageData = null;
+                resetImagePreview();
+                
+                deleteRecipeBtn.classList.add('hidden');
+                
+                // 添加模式，启用所有输入
+                recipeTitleInput.disabled = false;
+                recipeTypeSelect.disabled = false;
+                recipeSubcategoryInput.disabled = false;
+                recipeTimeInput.disabled = false;
+                recipeDifficultySelect.disabled = false;
+                recipeServingsInput.disabled = false;
+                recipeRatingSelect.disabled = false;
+                recipeIntroInput.disabled = false;
+                recipeIngredientsInput.disabled = false;
+                recipeStepsInput.disabled = false;
+                uploadImageBtn.disabled = false;
+                saveRecipeBtn.style.display = 'flex';
+            }
+            
+            recipeModal.style.display = 'flex';
+        }
+
+        // 关闭食谱编辑模态框
+        function closeRecipeModal() {
+            recipeModal.style.display = 'none';
+            editingRecipeId = null;
+            currentImageData = null;
+            resetImagePreview();
+        }
+
+        // 保存食谱
+        function saveRecipe() {
+            const title = recipeTitleInput.value.trim();
+            const type = recipeTypeSelect.value;
+            const subcategory = recipeSubcategoryInput.value.trim();
+            const time = recipeTimeInput.value.trim();
+            const difficulty = recipeDifficultySelect.value;
+            const servings = recipeServingsInput.value.trim();
+            const rating = recipeRatingSelect.value;
+            const intro = recipeIntroInput.value.trim();
+            const ingredients = recipeIngredientsInput.value.split('\n').filter(i => i.trim());
+            const steps = recipeStepsInput.value.trim();
+            
+            if (!title) {
+                showToast('请填写食谱标题', 'error');
+                return;
+            }
+            if (!time) {
+                showToast('请填写准备时间', 'error');
+                return;
+            }
+            if (!intro) {
+                showToast('请填写诱人简介', 'error');
+                return;
+            }
+            if (ingredients.length === 0) {
+                showToast('请填写至少一个主要食材', 'error');
+                return;
+            }
+            
+            const now = new Date().toISOString();
+            
+            if (editingRecipeId) {
+                const index = recipesData.findIndex(r => r.id == editingRecipeId);
+                if (index !== -1) {
+                    recipesData[index] = {
+                        ...recipesData[index],
+                        title,
+                        type,
+                        subcategory,
+                        time,
+                        difficulty,
+                        servings,
+                        rating,
+                        intro,
+                        ingredients,
+                        steps,
+                        imageData: currentImageData,
+                        updatedAt: now
+                    };
+                }
+            } else {
+                const newRecipe = {
+                    id: Date.now(),
+                    title,
+                    type,
+                    subcategory,
+                    intro,
+                    ingredients,
+                    time,
+                    difficulty,
+                    servings,
+                    rating,
+                    steps,
+                    imageData: currentImageData,
+                    createdAt: now,
+                    updatedAt: now
+                };
+                
+                recipesData.unshift(newRecipe);
+            }
+            
+            updateCategoryCounts();
+            renderRecipes();
+            updateComboRecommendation();
+            updateSubcategoryFilter();
+            
+            closeRecipeModal();
+            
+            showToast(editingRecipeId ? '食谱已更新' : '食谱已添加', 'success');
+        }
+
+        // 渲染食谱列表
+        function renderRecipes() {
+            filteredRecipes = recipesData.filter(recipe => {
+                if (currentFilterType !== 'all' && recipe.type !== currentFilterType) {
+                    return false;
+                }
+                
+                if (currentSubcategoryFilter && recipe.subcategory !== currentSubcategoryFilter) {
+                    return false;
+                }
+                
+                if (currentSearchTerm) {
+                    const searchIn = recipe.title.toLowerCase() + 
+                                     recipe.intro.toLowerCase() + 
+                                     recipe.ingredients.join(' ').toLowerCase() +
+                                     (recipe.subcategory || '').toLowerCase();
+                    return searchIn.includes(currentSearchTerm);
+                }
+                
+                return true;
+            });
+            
+            // 清空容器
+            recipesContainer.innerHTML = '';
+            adminRecipesContainer.innerHTML = '';
+            
+            if (filteredRecipes.length === 0) {
+                noResults.classList.remove('hidden');
+                recipesContainer.classList.add('hidden');
+                adminRecipesContainer.classList.add('hidden');
+                return;
+            } else {
+                noResults.classList.add('hidden');
+            }
+            
+            // 根据视图模式选择渲染方式
+            if (useAdminView) {
+                // 后台列表视图
+                recipesContainer.classList.add('hidden');
+                adminRecipesContainer.classList.remove('hidden');
+                
+                // 创建后台列表容器
+                const adminListContainer = document.createElement('div');
+                adminListContainer.className = 'admin-list-container';
+                
+                // 创建列表头部
+                const adminListHeader = document.createElement('div');
+                adminListHeader.className = 'admin-list-header';
+                adminListHeader.innerHTML = `
+                    <div style="width: 50px; flex-shrink: 0;">选择</div>
+                    <div style="width: 100px; flex-shrink: 0;">图片</div>
+                    <div style="flex: 1;">食谱信息</div>
+                    <div style="width: 200px; flex-shrink: 0;">操作</div>
+                `;
+                adminListContainer.appendChild(adminListHeader);
+                
+                // 添加每个食谱项目
+                filteredRecipes.forEach(recipe => {
+                    const updatedDate = new Date(recipe.updatedAt);
+                    const daysAgo = Math.floor((Date.now() - updatedDate) / (1000 * 60 * 60 * 24));
+                    const timeText = daysAgo === 0 ? '今天更新' : daysAgo === 1 ? '昨天更新' : `${daysAgo}天前更新`;
+                    
+                    const ratingStars = '★'.repeat(recipe.rating || 3) + '☆'.repeat(5 - (recipe.rating || 3));
+                    
+                    const adminListItem = document.createElement('div');
+                    adminListItem.className = 'admin-list-item';
+                    adminListItem.dataset.id = recipe.id;
+                    
+                    // 图片显示
+                    const imageHtml = recipe.imageData ? 
+                        `<img src="${recipe.imageData}" alt="${recipe.title}">` :
+                        `<i class="fas fa-utensils text-slate-400 text-2xl"></i>`;
+                    
+                    // 批量模式复选框
+                    const batchCheckbox = isBatchMode ? `
+                        <input type="checkbox" class="admin-list-checkbox" data-id="${recipe.id}" ${selectedRecipeIds.includes(recipe.id) ? 'checked' : ''}>
+                    ` : '<div style="width: 20px;"></div>';
+                    
+                    adminListItem.innerHTML = `
+                        <div style="width: 50px; flex-shrink: 0; display: flex; align-items: center;">
+                            ${batchCheckbox}
+                        </div>
+                        <div class="admin-list-image">
+                            ${imageHtml}
+                        </div>
+                        <div class="admin-list-content">
+                            <div class="admin-list-title">${recipe.title}</div>
+                            <div class="admin-list-description">${recipe.intro}</div>
+                            <div class="admin-list-meta">
+                                <span class="${recipe.type === 'dish' ? 'text-green-400' : 'text-blue-400'}">${recipe.type === 'dish' ? '菜谱' : '汤谱'}</span>
+                                <span>${recipe.time}</span>
+                                <span>${recipe.difficulty}</span>
+                                <span class="text-yellow-500">${ratingStars}</span>
+                                <span>${recipe.subcategory || '无分类'}</span>
+                                <span class="text-slate-500">${timeText}</span>
+                            </div>
+                        </div>
+                        <div class="admin-list-actions">
+                            <button class="action-btn-view view-recipe-btn" data-id="${recipe.id}">
+                                <i class="fas fa-eye mr-1"></i>查看
+                            </button>
+                            <button class="action-btn-edit edit-recipe-btn" data-id="${recipe.id}">
+                                <i class="fas fa-edit mr-1"></i>编辑
+                            </button>
+                            <button class="action-btn-delete delete-recipe-btn" data-id="${recipe.id}">
+                                <i class="fas fa-trash mr-1"></i>删除
+                            </button>
+                        </div>
+                    `;
+                    
+                    adminListContainer.appendChild(adminListItem);
+                });
+                
+                adminRecipesContainer.appendChild(adminListContainer);
+                
+                // 为后台列表按钮绑定事件
+                attachAdminListEvents();
+                
+                // 如果处于批量模式，为复选框绑定事件
+                if (isBatchMode) {
+                    document.querySelectorAll('.admin-list-checkbox').forEach(checkbox => {
+                        checkbox.addEventListener('change', function() {
+                            const recipeId = parseInt(this.dataset.id);
+                            handleRecipeCheckboxChange(recipeId, this.checked);
+                        });
+                    });
+                }
+            } else {
+                // 卡片视图
+                adminRecipesContainer.classList.add('hidden');
+                recipesContainer.classList.remove('hidden');
+                
+                filteredRecipes.forEach(recipe => {
+                    const updatedDate = new Date(recipe.updatedAt);
+                    const daysAgo = Math.floor((Date.now() - updatedDate) / (1000 * 60 * 60 * 24));
+                    const timeText = daysAgo === 0 ? '今天更新' : daysAgo === 1 ? '昨天更新' : `${daysAgo}天前更新`;
+                    
+                    const ratingStars = '★'.repeat(recipe.rating || 3) + '☆'.repeat(5 - (recipe.rating || 3));
+                    
+                    const recipeCard = document.createElement('div');
+                    recipeCard.className = 'recipe-card bg-slate-800 border border-slate-700 rounded-xl overflow-hidden flex flex-col relative';
+                    recipeCard.dataset.id = recipe.id;
+                    
+                    const batchCheckbox = isBatchMode ? `
+                        <input type="checkbox" class="batch-checkbox" data-id="${recipe.id}" ${selectedRecipeIds.includes(recipe.id) ? 'checked' : ''}>
+                    ` : '';
+                    
+                    const imageHtml = recipe.imageData ? 
+                        `<div class="recipe-image" style="background-image: url(${recipe.imageData}); background-size: cover; background-position: center; background-repeat: no-repeat;"></div>` :
+                        `<div class="recipe-image">
+                            <div class="flex flex-col items-center justify-center h-full">
+                                <i class="fas fa-utensils text-4xl"></i>
+                                <span class="text-sm mt-2">暂无图片</span>
+                            </div>
+                        </div>`;
+                    
+                    recipeCard.innerHTML = `
+                        ${batchCheckbox}
+                        <div class="flex-1 flex flex-col">
+                            ${imageHtml}
+                            <div class="p-5 flex-1 flex flex-col">
+                                <div class="flex justify-between items-start mb-3">
+                                    <h3 class="font-medium text-slate-100 truncate flex-1 mr-2">${recipe.title}</h3>
+                                    <span class="${recipe.type === 'dish' ? 'recipe-type-dish' : 'recipe-type-soup'} recipe-type-badge">
+                                        ${recipe.type === 'dish' ? '菜谱' : '汤谱'}
+                                    </span>
+                                </div>
+                                <p class="text-slate-400 text-sm mb-4 line-clamp-3 flex-1">${recipe.intro}</p>
+                                <div class="mb-4">
+                                    <div class="text-slate-500 text-xs mb-2">${recipe.subcategory ? '子分类:' : ''}</div>
+                                    <div>
+                                        ${recipe.subcategory ? `<span class="subcategory-tag">${recipe.subcategory}</span>` : '<span class="text-slate-500 text-xs">无子分类</span>'}
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <div class="text-slate-500 text-xs mb-1">主要食材：</div>
+                                    <div>
+                                        ${recipe.ingredients.slice(0, 4).map(ing => 
+                                            `<span class="ingredient-tag">${ing}</span>`
+                                        ).join('')}
+                                        ${recipe.ingredients.length > 4 ? '<span class="ingredient-tag">...</span>' : ''}
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center mt-auto">
+                                    <div class="flex flex-col">
+                                        <span class="text-xs text-slate-500">${timeText}</span>
+                                        <span class="text-xs text-slate-500">${recipe.time} · ${recipe.difficulty}</span>
+                                        <span class="text-xs text-yellow-500">${ratingStars}</span>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button class="view-recipe-card-btn text-blue-400 hover:text-blue-300 p-1 rounded transition-colors" data-id="${recipe.id}" title="查看">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="edit-recipe-card-btn text-green-400 hover:text-green-300 p-1 rounded transition-colors" data-id="${recipe.id}" title="编辑">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="delete-recipe-card-btn text-red-400 hover:text-red-300 p-1 rounded transition-colors" data-id="${recipe.id}" title="删除">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    recipesContainer.appendChild(recipeCard);
+                });
+                
+                attachRecipeCardEvents();
+                
+                if (isBatchMode) {
+                    document.querySelectorAll('.batch-checkbox').forEach(checkbox => {
+                        checkbox.addEventListener('change', function() {
+                            const recipeId = parseInt(this.dataset.id);
+                            handleRecipeCheckboxChange(recipeId, this.checked);
+                        });
+                    });
+                }
+            }
+        }
+
+        // 为后台列表按钮绑定事件
+        function attachAdminListEvents() {
+            adminRecipesContainer.addEventListener('click', function(e) {
+                if (isBatchMode && (e.target.closest('.view-recipe-btn') || e.target.closest('.edit-recipe-btn') || e.target.closest('.delete-recipe-btn'))) {
+                    return;
+                }
+                
+                const viewBtn = e.target.closest('.view-recipe-btn');
+                if (viewBtn) {
+                    const recipeId = viewBtn.dataset.id;
+                    const recipe = recipesData.find(r => r.id == recipeId);
+                    if (recipe) {
+                        openRecipeModal(recipe, true);
+                    }
+                }
+                
+                const editBtn = e.target.closest('.edit-recipe-btn');
+                if (editBtn) {
+                    const recipeId = editBtn.dataset.id;
+                    const recipe = recipesData.find(r => r.id == recipeId);
+                    if (recipe) {
+                        openRecipeModal(recipe);
+                    }
+                }
+                
+                const deleteBtn = e.target.closest('.delete-recipe-btn');
+                if (deleteBtn) {
+                    const recipeId = deleteBtn.dataset.id;
+                    openConfirmDeleteModal(recipeId);
+                }
+                
+                const listItem = e.target.closest('.admin-list-item');
+                if (listItem && !e.target.closest('button') && !e.target.classList.contains('admin-list-checkbox')) {
+                    if (isBatchMode) {
+                        const checkbox = listItem.querySelector('.admin-list-checkbox');
+                        if (checkbox) {
+                            checkbox.checked = !checkbox.checked;
+                            const recipeId = parseInt(checkbox.dataset.id);
+                            handleRecipeCheckboxChange(recipeId, checkbox.checked);
+                        }
+                    } else {
+                        const recipeId = listItem.dataset.id;
+                        const recipe = recipesData.find(r => r.id == recipeId);
+                        if (recipe) {
+                            openRecipeModal(recipe, true);
+                        }
+                    }
+                }
+            });
+        }
+
+        // 为食谱卡片按钮绑定事件
+        function attachRecipeCardEvents() {
+            recipesContainer.addEventListener('click', function(e) {
+                if (isBatchMode && (e.target.closest('.view-recipe-card-btn') || e.target.closest('.edit-recipe-card-btn') || e.target.closest('.delete-recipe-card-btn'))) {
+                    return;
+                }
+                
+                const viewBtn = e.target.closest('.view-recipe-card-btn');
+                if (viewBtn) {
+                    const recipeId = viewBtn.dataset.id;
+                    const recipe = recipesData.find(r => r.id == recipeId);
+                    if (recipe) {
+                        openRecipeModal(recipe, true);
+                    }
+                }
+                
+                const editBtn = e.target.closest('.edit-recipe-card-btn');
+                if (editBtn) {
+                    const recipeId = editBtn.dataset.id;
+                    const recipe = recipesData.find(r => r.id == recipeId);
+                    if (recipe) {
+                        openRecipeModal(recipe);
+                    }
+                }
+                
+                const deleteBtn = e.target.closest('.delete-recipe-card-btn');
+                if (deleteBtn) {
+                    const recipeId = deleteBtn.dataset.id;
+                    openConfirmDeleteModal(recipeId);
+                }
+                
+                const card = e.target.closest('.recipe-card');
+                if (card && !e.target.closest('button') && !e.target.classList.contains('batch-checkbox')) {
+                    if (isBatchMode) {
+                        const checkbox = card.querySelector('.batch-checkbox');
+                        if (checkbox) {
+                            checkbox.checked = !checkbox.checked;
+                            const recipeId = parseInt(checkbox.dataset.id);
+                            handleRecipeCheckboxChange(recipeId, checkbox.checked);
+                        }
+                    } else {
+                        const recipeId = card.dataset.id;
+                        const recipe = recipesData.find(r => r.id == recipeId);
+                        if (recipe) {
+                            openRecipeModal(recipe, true);
+                        }
+                    }
+                }
+            });
+        }
+
+        // 更新智能组合推荐
+        function updateComboRecommendation() {
+            if (recipesData.length === 0) {
+                comboRecommendation.innerHTML = `
+                    <div class="text-slate-400 text-center py-6 col-span-2">
+                        暂无食谱，请先添加一些食谱！
+                    </div>
+                `;
+                return;
+            }
+            
+            const dishes = recipesData.filter(r => r.type === 'dish');
+            const soups = recipesData.filter(r => r.type === 'soup');
+            
+            if (dishes.length === 0 && soups.length === 0) {
+                comboRecommendation.innerHTML = `
+                    <div class="text-slate-400 text-center py-6 col-span-2">
+                        请先添加菜谱或汤谱！
+                    </div>
+                `;
+                return;
+            }
+            
+            const numDishes = Math.min(dishes.length, Math.floor(Math.random() * 3) + 2);
+            const numSoups = Math.min(soups.length, Math.floor(Math.random() * 2) + 1);
+            
+            const selectedDishes = getRandomItems(dishes, numDishes);
+            const selectedSoups = getRandomItems(soups, numSoups);
+            
+            comboRecommendation.innerHTML = '';
+            
+            // 菜谱推荐卡片
+            const dishSection = document.createElement('div');
+            dishSection.className = 'recommendation-card';
+            dishSection.innerHTML = `
+                <div class="flex items-center mb-5">
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-r from-green-600 to-emerald-600 flex items-center justify-center mr-3">
+                        <i class="fas fa-utensils text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-100">今日推荐菜谱</h3>
+                        <p class="text-slate-400 text-sm">${selectedDishes.length}道精选菜品</p>
+                    </div>
+                    <span class="ml-auto text-xs bg-green-900 text-green-300 px-3 py-1.5 rounded-full">热门</span>
+                </div>
+                <div class="space-y-3">
+                    ${selectedDishes.map(dish => `
+                        <div class="recommendation-item" data-id="${dish.id}">
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 rounded-lg bg-slate-700 flex items-center justify-center mr-3 flex-shrink-0">
+                                    ${dish.imageData ? 
+                                        `<img src="${dish.imageData}" alt="${dish.title}" class="w-full h-full object-cover rounded-lg">` :
+                                        `<i class="fas fa-utensils text-slate-400"></i>`
+                                    }
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-semibold text-slate-100 truncate">${dish.title}</div>
+                                    <div class="text-xs text-slate-400 truncate">${dish.intro}</div>
+                                    <div class="flex items-center mt-1 text-xs text-slate-500">
+                                        <span class="mr-3">${dish.time}</span>
+                                        <span class="mr-3">${dish.difficulty}</span>
+                                        <span class="text-yellow-500">${'★'.repeat(dish.rating || 3)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            comboRecommendation.appendChild(dishSection);
+            
+            // 汤谱推荐卡片
+            const soupSection = document.createElement('div');
+            soupSection.className = 'recommendation-card';
+            soupSection.innerHTML = `
+                <div class="flex items-center mb-5">
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center mr-3">
+                        <i class="fas fa-mug-hot text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-100">今日推荐汤谱</h3>
+                        <p class="text-slate-400 text-sm">${selectedSoups.length}道暖心汤品</p>
+                    </div>
+                    <span class="ml-auto text-xs bg-blue-900 text-blue-300 px-3 py-1.5 rounded-full">营养</span>
+                </div>
+                <div class="space-y-3">
+                    ${selectedSoups.map(soup => `
+                        <div class="recommendation-item" data-id="${soup.id}">
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 rounded-lg bg-slate-700 flex items-center justify-center mr-3 flex-shrink-0">
+                                    ${soup.imageData ? 
+                                        `<img src="${soup.imageData}" alt="${soup.title}" class="w-full h-full object-cover rounded-lg">` :
+                                        `<i class="fas fa-mug-hot text-slate-400"></i>`
+                                    }
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-semibold text-slate-100 truncate">${soup.title}</div>
+                                    <div class="text-xs text-slate-400 truncate">${soup.intro}</div>
+                                    <div class="flex items-center mt-1 text-xs text-slate-500">
+                                        <span class="mr-3">${soup.time}</span>
+                                        <span class="mr-3">${soup.difficulty}</span>
+                                        <span class="text-yellow-500">${'★'.repeat(soup.rating || 3)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            comboRecommendation.appendChild(soupSection);
+            
+            // 为推荐项添加点击事件
+            document.querySelectorAll('.recommendation-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const recipeId = this.dataset.id;
+                    const recipe = recipesData.find(r => r.id == recipeId);
+                    if (recipe) {
+                        openRecipeModal(recipe, true);
+                    }
+                });
+            });
+        }
+
+        // 从数组中随机选择指定数量的项目
+        function getRandomItems(array, count) {
+            if (array.length === 0) return [];
+            const shuffled = [...array].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, count);
+        }
+
+        // 显示/隐藏加载状态
+        function hideLoadingState() {
+            loadingState.style.display = 'none';
+            randomSection.classList.remove('hidden');
+            categorySection.classList.remove('hidden');
+            updateSubcategoryFilter();
+        }
+
+        // 初始化时间显示
+        function initDateTime() {
+            function updateDateTime() {
+                const now = new Date();
+                const dateStr = now.toLocaleDateString('zh-CN', { 
+                    year: 'numeric', 
+                    month: '2-digit', 
+                    day: '2-digit',
+                    weekday: 'short'
+                }).replace(/\//g, '-');
+                
+                const timeStr = now.toLocaleTimeString('zh-CN', { 
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    second: '2-digit' 
+                });
+                
+                document.getElementById('currentDate').textContent = dateStr;
+                document.getElementById('currentTime').textContent = timeStr;
+            }
+            
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+        }
+
+        // 导出数据
+        function exportData() {
+            const exportData = {
+                recipes: recipesData,
+                categories: categories,
+                exportDate: new Date().toISOString(),
+                totalRecipes: recipesData.length,
+                totalCategories: categories.length
+            };
+            
+            const jsonString = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `recipes_export_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
+            
+            showToast(`已导出 ${recipesData.length} 个食谱数据`, 'success');
+        }
+
+        // 显示提示消息
+        function showToast(message, type = 'info') {
+            const existingToast = document.querySelector('.toast');
+            if (existingToast) {
+                existingToast.remove();
+            }
+            
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            
+            let icon = '';
+            if (type === 'success') {
+                icon = '<i class="fas fa-check-circle text-green-400"></i>';
+            } else if (type === 'error') {
+                icon = '<i class="fas fa-exclamation-circle text-red-400"></i>';
+            } else {
+                icon = '<i class="fas fa-info-circle text-blue-400"></i>';
+            }
+            
+            toast.innerHTML = `
+                ${icon}
+                <span>${message}</span>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(-50%) translateY(-10px)';
+                setTimeout(() => {
+                    if (toast.parentElement) {
+                        toast.remove();
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // 页面加载完成时初始化应用
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM加载完成，开始初始化应用...');
+            initApp();
+        });
+    </script>
+</body>
+</html>

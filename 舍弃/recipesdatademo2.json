@@ -1,0 +1,340 @@
+{
+  "recipes": [
+    {
+      "id": 1,
+      "title": "红烧排骨",
+      "type": "dish",
+      "intro": "色泽红亮，肉质酥烂，咸甜适口的经典家常菜，香气扑鼻令人垂涎欲滴。",
+      "ingredients": [
+        "猪排骨",
+        "生姜",
+        "大葱",
+        "八角",
+        "料酒",
+        "生抽",
+        "老抽",
+        "冰糖"
+      ],
+      "time": "60分钟",
+      "difficulty": "中等",
+      "servings": "2-3人份",
+      "rating": 5,
+      "imageData": null,
+      "subcategoryTags": [
+        1,
+        2,
+        7
+      ],
+      "steps": "<h3>详细步骤</h3><ol><li>排骨洗净，冷水下锅，加入料酒、姜片焯水去腥，捞出沥干</li><li>热锅凉油，放入冰糖小火炒至融化，呈焦糖色</li><li>加入排骨快速翻炒，使每块排骨均匀上色</li><li>放入姜片、葱段、八角炒出香味</li><li>加入生抽、老抽翻炒均匀，倒入热水没过排骨</li><li>大火烧开后转小火，盖上锅盖慢炖40分钟</li><li>最后开大火收汁，待汤汁浓稠即可出锅</li><li>装盘后撒上葱花点缀</li></ol>",
+      "createdAt": "2025-11-28T10:12:42.254Z",
+      "updatedAt": "2025-11-28T10:12:42.254Z"
+    },
+    {
+      "id": 2,
+      "title": "番茄鸡蛋汤",
+      "type": "soup",
+      "intro": "简单快手，酸甜开胃，营养丰富的家常汤品，适合任何季节享用。",
+      "ingredients": [
+        "番茄",
+        "鸡蛋",
+        "小葱",
+        "香油",
+        "盐",
+        "白胡椒粉"
+      ],
+      "time": "15分钟",
+      "difficulty": "简单",
+      "servings": "2人份",
+      "rating": 4,
+      "imageData": null,
+      "subcategoryTags": [
+        3,
+        9,
+        12
+      ],
+      "steps": "<h3>详细步骤</h3><ol><li>番茄洗净，顶部划十字刀，用开水烫一下去皮，切小块</li><li>鸡蛋打入碗中，加少许盐打散备用</li><li>小葱洗净切葱花</li><li>锅中放少许油，油热后放入番茄块翻炒至出汁</li><li>加入适量清水，大火烧开</li><li>水开后转小火，慢慢淋入蛋液，形成漂亮的蛋花</li><li>加入盐和白胡椒粉调味，关火</li><li>撒上葱花，淋几滴香油即可</li></ol>",
+      "createdAt": "2025-11-30T10:12:42.254Z",
+      "updatedAt": "2025-12-02T10:12:42.254Z"
+    },
+    {
+      "id": 3,
+      "title": "麻婆豆腐",
+      "type": "dish",
+      "intro": "麻辣鲜香，口感嫩滑的经典川菜，豆腐与肉末的完美结合。",
+      "ingredients": [
+        "嫩豆腐",
+        "猪肉末",
+        "豆瓣酱",
+        "花椒粉",
+        "姜末",
+        "蒜末",
+        "葱花"
+      ],
+      "time": "30分钟",
+      "difficulty": "中等",
+      "servings": "2-3人份",
+      "rating": 5,
+      "imageData": null,
+      "subcategoryTags": [
+        1,
+        5,
+        8
+      ],
+      "steps": "<h3>详细步骤</h3><ol><li>豆腐切2厘米见方的小块，放入加盐的沸水中焯烫2分钟，捞出沥干</li><li>热锅凉油，放入猪肉末炒散至变色，盛出备用</li><li>锅中留底油，放入豆瓣酱小火炒出红油</li><li>加入姜末、蒜末炒香，倒入适量清水烧开</li><li>放入豆腐块，轻轻推匀，煮5分钟让豆腐入味</li><li>加入炒好的肉末，轻轻搅拌均匀</li><li>用水淀粉勾芡，使汤汁浓稠</li><li>出锅前撒上花椒粉和葱花</li></ol>",
+      "createdAt": "2025-12-01T10:12:42.254Z",
+      "updatedAt": "2025-12-01T10:12:42.254Z"
+    }
+  ],
+  "subcategoryGroups": [
+    {
+      "id": 1,
+      "name": "菜系",
+      "type": "dish",
+      "icon": "fa-globe-asia",
+      "colorIndex": 1,
+      "order": 1
+    },
+    {
+      "id": 2,
+      "name": "烹饪方式",
+      "type": "both",
+      "icon": "fa-fire",
+      "colorIndex": 2,
+      "order": 2
+    },
+    {
+      "id": 3,
+      "name": "口味",
+      "type": "both",
+      "icon": "fa-utensil-spoon",
+      "colorIndex": 3,
+      "order": 3
+    },
+    {
+      "id": 4,
+      "name": "汤类",
+      "type": "soup",
+      "icon": "fa-mug-hot",
+      "colorIndex": 4,
+      "order": 4
+    },
+    {
+      "id": 5,
+      "name": "难度",
+      "type": "both",
+      "icon": "fa-chart-line",
+      "colorIndex": 5,
+      "order": 5
+    },
+    {
+      "id": 6,
+      "name": "季节",
+      "type": "both",
+      "icon": "fa-calendar-alt",
+      "colorIndex": 6,
+      "order": 6
+    }
+  ],
+  "subcategoryTags": [
+    {
+      "id": 1,
+      "name": "川菜",
+      "groupId": 1,
+      "type": "dish",
+      "recipeCount": 2
+    },
+    {
+      "id": 2,
+      "name": "湘菜",
+      "groupId": 1,
+      "type": "dish",
+      "recipeCount": 1
+    },
+    {
+      "id": 3,
+      "name": "家常",
+      "groupId": 1,
+      "type": "dish",
+      "recipeCount": 1
+    },
+    {
+      "id": 4,
+      "name": "粤菜",
+      "groupId": 1,
+      "type": "dish",
+      "recipeCount": 0
+    },
+    {
+      "id": 5,
+      "name": "浙菜",
+      "groupId": 1,
+      "type": "dish",
+      "recipeCount": 1
+    },
+    {
+      "id": 6,
+      "name": "炒",
+      "groupId": 2,
+      "type": "dish",
+      "recipeCount": 0
+    },
+    {
+      "id": 7,
+      "name": "红烧",
+      "groupId": 2,
+      "type": "dish",
+      "recipeCount": 1
+    },
+    {
+      "id": 8,
+      "name": "烧",
+      "groupId": 2,
+      "type": "dish",
+      "recipeCount": 1
+    },
+    {
+      "id": 9,
+      "name": "煮",
+      "groupId": 2,
+      "type": "both",
+      "recipeCount": 1
+    },
+    {
+      "id": 10,
+      "name": "炖",
+      "groupId": 2,
+      "type": "both",
+      "recipeCount": 0
+    },
+    {
+      "id": 11,
+      "name": "蒸",
+      "groupId": 2,
+      "type": "dish",
+      "recipeCount": 0
+    },
+    {
+      "id": 12,
+      "name": "清淡",
+      "groupId": 3,
+      "type": "both",
+      "recipeCount": 1
+    },
+    {
+      "id": 13,
+      "name": "麻辣",
+      "groupId": 3,
+      "type": "dish",
+      "recipeCount": 0
+    },
+    {
+      "id": 14,
+      "name": "咸甜",
+      "groupId": 3,
+      "type": "dish",
+      "recipeCount": 0
+    },
+    {
+      "id": 15,
+      "name": "酸甜",
+      "groupId": 3,
+      "type": "dish",
+      "recipeCount": 0
+    },
+    {
+      "id": 16,
+      "name": "鲜香",
+      "groupId": 3,
+      "type": "both",
+      "recipeCount": 0
+    },
+    {
+      "id": 17,
+      "name": "清汤",
+      "groupId": 4,
+      "type": "soup",
+      "recipeCount": 0
+    },
+    {
+      "id": 18,
+      "name": "浓汤",
+      "groupId": 4,
+      "type": "soup",
+      "recipeCount": 0
+    },
+    {
+      "id": 19,
+      "name": "炖汤",
+      "groupId": 4,
+      "type": "soup",
+      "recipeCount": 0
+    },
+    {
+      "id": 20,
+      "name": "快手汤",
+      "groupId": 4,
+      "type": "soup",
+      "recipeCount": 0
+    },
+    {
+      "id": 21,
+      "name": "入门",
+      "groupId": 5,
+      "type": "both",
+      "recipeCount": 0
+    },
+    {
+      "id": 22,
+      "name": "简单",
+      "groupId": 5,
+      "type": "both",
+      "recipeCount": 0
+    },
+    {
+      "id": 23,
+      "name": "中等",
+      "groupId": 5,
+      "type": "both",
+      "recipeCount": 0
+    },
+    {
+      "id": 24,
+      "name": "复杂",
+      "groupId": 5,
+      "type": "both",
+      "recipeCount": 0
+    },
+    {
+      "id": 25,
+      "name": "春季",
+      "groupId": 6,
+      "type": "both",
+      "recipeCount": 0
+    },
+    {
+      "id": 26,
+      "name": "夏季",
+      "groupId": 6,
+      "type": "both",
+      "recipeCount": 0
+    },
+    {
+      "id": 27,
+      "name": "秋季",
+      "groupId": 6,
+      "type": "both",
+      "recipeCount": 0
+    },
+    {
+      "id": 28,
+      "name": "冬季",
+      "groupId": 6,
+      "type": "both",
+      "recipeCount": 0
+    }
+  ],
+  "exportDate": "2025-12-03T10:12:49.762Z",
+  "totalRecipes": 3,
+  "totalGroups": 6,
+  "totalTags": 28
+}
