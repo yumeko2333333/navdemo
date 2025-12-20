@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录访问</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-slate-800 p-8 rounded-2xl shadow-2xl w-96">
+        <div class="text-center mb-8">
+            <i class="fas fa-lock text-blue-500 text-4xl mb-4"></i>
+            <h1 class="text-2xl font-bold text-white">需要授权访问</h1>
+            <p class="text-slate-400 mt-2">请输入密码查看内容</p>
+        </div>
+        
+        <form id="loginForm">
+            <div class="mb-4">
+                <input type="password" id="password" 
+                       class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500"
+                       placeholder="输入访问密码" required autofocus>
+            </div>
+            
+            <button type="submit" 
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-colors">
+                进入网站
+            </button>
+        </form>
+        
+        <div id="errorMsg" class="mt-4 text-red-400 text-sm text-center hidden">
+            <i class="fas fa-exclamation-circle mr-1"></i>
+            <span>密码错误，请重试</span>
+        </div>
+    </div>
+
+    <script>
+        // 配置密码 - 修改这里设置你的密码
+        const SITE_PASSWORD = '123456'; // 改成你的密码
+        
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const password = document.getElementById('password').value.trim();
+            const errorMsg = document.getElementById('errorMsg');
+            
+            if (password === SITE_PASSWORD) {
+                // 登录成功，设置登录状态并跳转
+                const authData = {
+                    loggedIn: true,
+                    timestamp: Date.now(),
+                    expires: Date.now() + (24 * 60 * 60 * 1000) // 24小时有效期
+                };
+                localStorage.setItem('siteAuth', JSON.stringify(authData));
+                sessionStorage.setItem('siteAuth', 'true');
+                
+                // 跳转到原页面或首页
+                const urlParams = new URLSearchParams(window.location.search);
+                const redirect = urlParams.get('redirect') || 'index.html';
+                window.location.href = redirect;
+            } else {
+                // 密码错误
+                errorMsg.classList.remove('hidden');
+                document.getElementById('password').value = '';
+                setTimeout(() => {
+                    errorMsg.classList.add('hidden');
+                }, 3000);
+            }
+        });
+        
+        // 如果已经登录，直接跳转
+        const auth = localStorage.getItem('siteAuth');
+        if (auth) {
+            try {
+                const authData = JSON.parse(auth);
+                if (authData.loggedIn && authData.expires > Date.now()) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const redirect = urlParams.get('redirect') || 'index.html';
+                    window.location.href = redirect;
+                }
+            } catch (e) {
+                // 解析失败，清除错误数据
+                localStorage.removeItem('siteAuth');
+            }
+        }
+    </script>
+</body>
+</html>

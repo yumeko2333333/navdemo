@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>定时提醒应用</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        // 配置Tailwind
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4285f4',
+                        secondary: '#34a853',
+                        warning: '#fbbc05',
+                        danger: '#ea4335',
+                        dark: '#1f2937',
+                        light: '#f8f9fa'
+                    },
+                    animation: {
+                        'spin-slow': 'spin 2s linear infinite',
+                        'slide-in': 'slideIn 0.5s ease-out',
+                        'fade-out': 'fadeOut 0.5s ease-out 4.5s forwards'
+                    },
+                    keyframes: {
+                        slideIn: {
+                            '0%': { transform: 'translateX(100%)', opacity: '0' },
+                            '100%': { transform: 'translateX(0)', opacity: '1' }
+                        },
+                        fadeOut: {
+                            '0%': { opacity: '1' },
+                            '100%': { opacity: '0' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            /* 自定义工具类 */
+            .text-shadow { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-5 font-sans">
+    <div class="container mx-auto max-w-4xl bg-white rounded-xl shadow-lg overflow-hidden">
+        <!-- 头部 -->
+        <div class="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 text-center">
+            <h1 class="text-3xl font-bold flex items-center justify-center gap-3 mb-2 text-shadow">
+                <i class="fa fa-bell"></i> 定时提醒应用
+            </h1>
+            <p class="opacity-90">设置重要时间点，不错过任何事情</p>
+        </div>
+        
+        <!-- 控制按钮 -->
+        <div class="flex flex-wrap justify-center gap-4 p-5 bg-gray-50 border-b">
+            <button id="exportBtn" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg flex items-center gap-2 transition-all shadow-md hover:shadow-lg">
+                <i class="fa fa-download"></i> 导出数据
+            </button>
+            <button id="addReminderBtn" class="px-5 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-lg flex items-center gap-2 transition-all shadow-md hover:shadow-lg">
+                <i class="fa fa-plus"></i> 添加提醒
+            </button>
+            <button id="testNotificationBtn" class="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg flex items-center gap-2 transition-all shadow-md hover:shadow-lg">
+                <i class="fa fa-bell"></i> 测试通知
+            </button>
+        </div>
+        
+        <!-- 提醒区域 -->
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-6 pb-4 border-b">
+                <h2 class="text-2xl font-semibold text-blue-700 flex items-center gap-2">
+                    <i class="fa fa-clock-o"></i> 我的提醒
+                </h2>
+                <div class="text-gray-600">总共 <span id="remindersCount" class="font-bold">0</span> 个提醒</div>
+            </div>
+            
+            <!-- 提醒列表 -->
+            <div id="remindersList" class="space-y-4">
+                <div class="text-center py-12 text-gray-500">
+                    <i class="fa fa-spinner fa-spin text-4xl mb-3 text-blue-500"></i>
+                    <p>正在加载提醒数据...</p>
+                </div>
+            </div>
+            
+            <!-- 状态信息 -->
+            <div class="mt-6 p-4 bg-gray-50 rounded-lg text-center">
+                <p>当前时间: <span id="currentTimeDisplay" class="font-mono font-bold">--:--</span></p>
+                <p>提醒检查状态: <span id="checkStatus" class="text-green-600 font-medium">运行中</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 提醒设置模态框 -->
+    <div id="reminderModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-slide-in">
+            <div class="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-5 flex justify-between items-center">
+                <h3 class="text-xl font-semibold flex items-center gap-2">
+                    <i class="fa fa-bell"></i> 设置提醒
+                </h3>
+                <button id="closeModalBtn" class="text-white hover:text-gray-200 text-xl">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="reminderForm" class="p-5">
+                <div class="mb-5">
+                    <label for="reminderTitle" class="block text-gray-700 font-medium mb-2">提醒标题</label>
+                    <input type="text" id="reminderTitle" required placeholder="输入提醒内容" 
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                </div>
+                
+                <div class="mb-5">
+                    <label for="reminderTime" class="block text-gray-700 font-medium mb-2">提醒时间</label>
+                    <input type="time" id="reminderTime" required
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                </div>
+                
+                <div class="mb-5">
+                    <label for="reminderRepeat" class="block text-gray-700 font-medium mb-2">重复频率</label>
+                    <select id="reminderRepeat" required
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                        <option value="none">不重复</option>
+                        <option value="daily">每天</option>
+                        <option value="weekly">每周</option>
+                        <option value="monthly">每月</option>
+                    </select>
+                </div>
+                
+                <!-- 每周重复选项 -->
+                <div id="weeklyOptions" class="mb-5 hidden">
+                    <label class="block text-gray-700 font-medium mb-2">重复星期</label>
+                    <div class="flex flex-wrap gap-3">
+                        <label class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg cursor-pointer hover:bg-gray-200 transition">
+                            <input type="checkbox" name="weekday" value="0"> 周日
+                        </label>
+                        <label class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg cursor-pointer hover:bg-gray-200 transition">
+                            <input type="checkbox" name="weekday" value="1"> 周一
+                        </label>
+                        <label class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg cursor-pointer hover:bg-gray-200 transition">
+                            <input type="checkbox" name="weekday" value="2"> 周二
+                        </label>
+                        <label class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg cursor-pointer hover:bg-gray-200 transition">
+                            <input type="checkbox" name="weekday" value="3"> 周三
+                        </label>
+                        <label class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg cursor-pointer hover:bg-gray-200 transition">
+                            <input type="checkbox" name="weekday" value="4"> 周四
+                        </label>
+                        <label class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg cursor-pointer hover:bg-gray-200 transition">
+                            <input type="checkbox" name="weekday" value="5"> 周五
+                        </label>
+                        <label class="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg cursor-pointer hover:bg-gray-200 transition">
+                            <input type="checkbox" name="weekday" value="6"> 周六
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end gap-3 pt-4 border-t">
+                    <button type="button" id="cancelBtn" class="px-5 py-2.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition">
+                        取消
+                    </button>
+                    <button type="submit" id="saveBtn" class="px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition">
+                        保存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let reminders = [];
+        let editingReminderId = null;
+        let checkInterval = null;
+        
+        // DOM元素
+        const remindersList = document.getElementById('remindersList');
+        const remindersCount = document.getElementById('remindersCount');
+        const reminderModal = document.getElementById('reminderModal');
+        const reminderForm = document.getElementById('reminderForm');
+        const reminderTitle = document.getElementById('reminderTitle');
+        const reminderTime = document.getElementById('reminderTime');
+        const reminderRepeat = document.getElementById('reminderRepeat');
+        const weeklyOptions = document.getElementById('weeklyOptions');
+        const addReminderBtn = document.getElementById('addReminderBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const testNotificationBtn = document.getElementById('testNotificationBtn');
+        const currentTimeDisplay = document.getElementById('currentTimeDisplay');
+        const checkStatus = document.getElementById('checkStatus');
+        
+        // 示例数据（当JSON文件不存在时使用）
+        const sampleData = {
+            reminders: [
+                {
+                    id: 1629260400000,
+                    title: "每日会议",
+                    time: "09:30",
+                    repeat: "daily",
+                    active: true,
+                    createdAt: "2025-09-01T08:00:00.000Z"
+                },
+                {
+                    id: 1629271200000,
+                    title: "每周报告",
+                    time: "15:00",
+                    repeat: "weekly",
+                    weekdays: [4],
+                    active: true,
+                    createdAt: "2025-09-01T08:00:00.000Z"
+                }
+            ]
+        };
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadRemindersFromJson();
+            bindEvents();
+            startReminderChecker();
+            updateCurrentTime();
+            
+            // 请求通知权限
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        console.log('通知权限已授予');
+                    }
+                });
+            }
+        });
+        
+        // 从JSON文件加载提醒数据
+        async function loadRemindersFromJson() {
+            try {
+                const response = await fetch('../reminders.json');
+                
+                if (!response.ok) {
+                    throw new Error('JSON文件未找到，使用示例数据');
+                }
+                
+                const data = await response.json();
+                reminders = data.reminders || [];
+                renderReminders();
+                
+            } catch (error) {
+                console.warn(error.message);
+                reminders = sampleData.reminders;
+                renderReminders();
+                showAlert('使用示例数据', 'reminders.json文件未找到，已加载示例数据');
+            }
+        }
+        
+        // 更新当前时间显示
+        function updateCurrentTime() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            currentTimeDisplay.textContent = `${hours}:${minutes}:${seconds}`;
+            
+            setTimeout(updateCurrentTime, 1000);
+        }
+        
+        // 绑定事件
+        function bindEvents() {
+            addReminderBtn.addEventListener('click', openModal);
+            closeModalBtn.addEventListener('click', closeModal);
+            cancelBtn.addEventListener('click', closeModal);
+            reminderForm.addEventListener('submit', saveReminder);
+            reminderRepeat.addEventListener('change', toggleWeeklyOptions);
+            exportBtn.addEventListener('click', exportReminders);
+            testNotificationBtn.addEventListener('click', testNotification);
+        }
+        
+        // 打开模态框
+        function openModal() {
+            editingReminderId = null;
+            reminderForm.reset();
+            toggleWeeklyOptions();
+            
+            // 设置默认时间为下一整点
+            const now = new Date();
+            const nextHour = new Date(now);
+            nextHour.setHours(now.getHours() + 1);
+            nextHour.setMinutes(0);
+            nextHour.setSeconds(0);
+            
+            reminderTime.value = `${nextHour.getHours().toString().padStart(2, '0')}:${nextHour.getMinutes().toString().padStart(2, '0')}`;
+            
+            reminderModal.classList.remove('hidden');
+            reminderModal.classList.add('flex');
+        }
+        
+        // 关闭模态框
+        function closeModal() {
+            reminderModal.classList.remove('flex');
+            reminderModal.classList.add('hidden');
+        }
+        
+        // 切换每周选项显示
+        function toggleWeeklyOptions() {
+            if (reminderRepeat.value === 'weekly') {
+                weeklyOptions.classList.remove('hidden');
+            } else {
+                weeklyOptions.classList.add('hidden');
+            }
+        }
+        
+        // 保存提醒
+        function saveReminder(e) {
+            e.preventDefault();
+            
+            const title = reminderTitle.value.trim();
+            const time = reminderTime.value;
+            const repeat = reminderRepeat.value;
+            
+            if (!title || !time) {
+                alert('请填写提醒标题和时间');
+                return;
+            }
+            
+            const reminder = {
+                title,
+                time,
+                repeat,
+                active: true,
+                createdAt: new Date().toISOString()
+            };
+            
+            // 处理每周重复
+            if (repeat === 'weekly') {
+                const checkedDays = Array.from(document.querySelectorAll('input[name="weekday"]:checked'))
+                    .map(checkbox => parseInt(checkbox.value));
+                
+                if (checkedDays.length === 0) {
+                    alert('请选择每周重复的星期');
+                    return;
+                }
+                
+                reminder.weekdays = checkedDays;
+            }
+            
+            if (editingReminderId) {
+                // 更新现有提醒
+                const index = reminders.findIndex(r => r.id === editingReminderId);
+                if (index !== -1) {
+                    reminder.id = editingReminderId;
+                    reminders[index] = reminder;
+                }
+            } else {
+                // 添加新提醒
+                reminder.id = Date.now();
+                reminders.push(reminder);
+            }
+            
+            renderReminders();
+            closeModal();
+            
+            // 显示成功消息
+            showAlert('提醒已保存', `"${title}" 将在 ${time} 提醒您`);
+        }
+        
+        // 渲染提醒列表
+        function renderReminders() {
+            if (reminders.length === 0) {
+                remindersList.innerHTML = `
+                    <div class="text-center py-12 text-gray-500">
+                        <i class="fa fa-bell-o text-4xl mb-3 opacity-50"></i>
+                        <p>暂无提醒，点击"添加提醒"创建</p>
+                    </div>
+                `;
+                remindersCount.textContent = '0';
+                return;
+            }
+            
+            // 按时间排序
+            const sortedReminders = [...reminders].sort((a, b) => a.time.localeCompare(b.time));
+            
+            remindersList.innerHTML = sortedReminders.map(reminder => `
+                <div class="bg-gray-50 rounded-xl p-5 border-l-4 border-blue-500 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div class="flex-1">
+                            <h3 class="text-lg font-semibold text-gray-800">${reminder.title}</h3>
+                            <div class="flex flex-wrap items-center gap-3 mt-2 text-sm text-gray-600">
+                                <span class="font-mono font-bold text-blue-600">${reminder.time}</span>
+                                <span>${getRepeatText(reminder)}</span>
+                                <span class="px-2 py-1 rounded-full text-xs ${reminder.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                    ${reminder.active ? '启用中' : '已禁用'}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="toggleReminder(${reminder.id})" class="w-10 h-10 flex items-center justify-center rounded-full ${reminder.active ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'} transition">
+                                <i class="fa fa-${reminder.active ? 'bell' : 'bell-slash'}"></i>
+                            </button>
+                            <button onclick="editReminder(${reminder.id})" class="w-10 h-10 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition">
+                                <i class="fa fa-pencil"></i>
+                            </button>
+                            <button onclick="deleteReminder(${reminder.id})" class="w-10 h-10 flex items-center justify-center rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition">
+                                <i class="fa fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            remindersCount.textContent = reminders.length;
+        }
+        
+        // 获取重复频率文本
+        function getRepeatText(reminder) {
+            const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+            
+            switch (reminder.repeat) {
+                case 'none': return '不重复';
+                case 'daily': return '每天';
+                case 'weekly': 
+                    return `每周: ${reminder.weekdays?.map(day => weekdays[day]).join(',') || ''}`;
+                case 'monthly': return '每月';
+                default: return '未知';
+            }
+        }
+        
+        // 切换提醒状态
+        function toggleReminder(id) {
+            const reminder = reminders.find(r => r.id === id);
+            if (reminder) {
+                reminder.active = !reminder.active;
+                renderReminders();
+                
+                const action = reminder.active ? '启用' : '禁用';
+                showAlert('提醒已' + action, `"${reminder.title}" 已${action}`);
+            }
+        }
+        
+        // 编辑提醒
+        function editReminder(id) {
+            const reminder = reminders.find(r => r.id === id);
+            if (!reminder) return;
+            
+            reminderTitle.value = reminder.title;
+            reminderTime.value = reminder.time;
+            reminderRepeat.value = reminder.repeat;
+            
+            // 选中每周重复的星期
+            if (reminder.repeat === 'weekly' && reminder.weekdays) {
+                document.querySelectorAll('input[name="weekday"]').forEach(checkbox => {
+                    checkbox.checked = reminder.weekdays.includes(parseInt(checkbox.value));
+                });
+            }
+            
+            toggleWeeklyOptions();
+            editingReminderId = id;
+            reminderModal.classList.remove('hidden');
+            reminderModal.classList.add('flex');
+        }
+        
+        // 删除提醒
+        function deleteReminder(id) {
+            const reminder = reminders.find(r => r.id === id);
+            if (!reminder) return;
+            
+            if (confirm(`确定要删除提醒 "${reminder.title}" 吗？`)) {
+                reminders = reminders.filter(r => r.id !== id);
+                renderReminders();
+                showAlert('提醒已删除', `"${reminder.title}" 已删除`);
+            }
+        }
+        
+        // 启动提醒检查器
+        function startReminderChecker() {
+            // 清除现有检查器
+            if (checkInterval) {
+                clearInterval(checkInterval);
+            }
+            
+            // 立即检查一次
+            checkReminders();
+            
+            // 每10秒检查一次（测试用，实际应用可改为每分钟）
+            checkInterval = setInterval(checkReminders, 10000);
+            
+            checkStatus.textContent = '运行中';
+            checkStatus.className = 'text-green-600 font-medium';
+        }
+        
+        // 检查提醒
+        function checkReminders() {
+            const now = new Date();
+            const currentHours = now.getHours().toString().padStart(2, '0');
+            const currentMinutes = now.getMinutes().toString().padStart(2, '0');
+            const currentTime = `${currentHours}:${currentMinutes}`;
+            const currentDay = now.getDay(); // 0=周日, 6=周六
+            
+            reminders.forEach(reminder => {
+                if (!reminder.active || reminder.time !== currentTime) return;
+                
+                // 检查重复规则
+                if (isReminderDue(reminder, currentDay)) {
+                    showNotification(reminder);
+                    
+                    // 如果是非重复提醒，触发后禁用
+                    if (reminder.repeat === 'none') {
+                        reminder.active = false;
+                        renderReminders();
+                    }
+                }
+            });
+        }
+        
+        // 判断提醒是否到期
+        function isReminderDue(reminder, currentDay) {
+            switch (reminder.repeat) {
+                case 'none': 
+                    return true; // 一次性提醒
+                case 'daily': 
+                    return true; // 每天
+                case 'weekly': 
+                    return reminder.weekdays?.includes(currentDay); // 每周指定星期
+                case 'monthly': 
+                    return true; // 每月
+                default: 
+                    return false;
+            }
+        }
+        
+        // 显示通知
+        function showNotification(reminder) {
+            const notificationText = `提醒: ${reminder.title}`;
+            
+            // 浏览器通知
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('定时提醒', {
+                    body: notificationText,
+                    icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iIzNCODI2NiIgZD0iTTEyIDJDMTEuNDQ3NzIgMiAxMSAwIDIuNTUyMjggMkgxLjQ0NzcyQzAuNjUxMDcgMiAwIDEuMzQ4OTMgMCAyLjE0MjEyVjIyQzAgMjIuNjUxMSAwLjM0ODg3NyAyMyAxLjQ0NzcyIDIzSDIyLjU1MjNDMjMuMzQ5IDIzIDI0IDIyLjY1MTEgMjQgMjJWMi4xNDIxMkMyNCAxLjM0ODkzIDIzLjM0OSAyIDIyLjU1MjMgMkgxMi45NDc3QzEyLjQ0NzcgMiAxMiAyIDEyIDJaIi8+PHBhdGggZmlsbD0iIzFCRTg4MSIgZD0iTTEyIDE1QzEzLjA5NDMgMTUgMTQgMTQuMDk0MyAxNCAxM1YzQzE0IDEuODk1NSAxMy4wOTQzIDEgMTIgMUMyMTAuOTA1NyAxIDAgMS44OTU1IDAgM1YzQzAgNC4wOTQzIDAuOTA1NzEgNSAxMiA1QzE0LjA5NDMgNSAxNSA0LjA5NDMgMTUgM1YxM0MxNSAxNC4w5NDMgMTQuMDk0MyAxNSAxMiAxNVoiLz48L3N2Zz4='
+                });
+            }
+            
+            // 页面内通知
+            showAlert('提醒通知', notificationText);
+        }
+        
+        // 显示页面内提醒
+        function showAlert(title, message) {
+            const alert = document.createElement('div');
+            alert.className = 'fixed top-5 right-5 bg-white border-l-4 border-green-500 shadow-lg rounded-lg p-4 flex items-center gap-4 z-50 animate-slide-in animate-fade-out max-w-md';
+            alert.innerHTML = `
+                <div class="text-green-500 text-2xl">
+                    <i class="fa fa-bell"></i>
+                </div>
+                <div class="flex-1">
+                    <h4 class="font-semibold text-gray-800">${title}</h4>
+                    <p class="text-gray-600">${message}</p>
+                </div>
+                <button class="text-gray-400 hover:text-gray-600 text-lg" onclick="this.parentElement.remove()">
+                    <i class="fa fa-times"></i>
+                </button>
+            `;
+            
+            document.body.appendChild(alert);
+            
+            // 5秒后自动关闭
+            setTimeout(() => {
+                if (alert.parentElement) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+        
+        // 测试通知
+        function testNotification() {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('测试通知', {
+                    body: '这是一个测试通知，说明您的提醒功能正常工作',
+                    icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iIzNCODI2NiIgZD0iTTEyIDJDMTEuNDQ3NzIgMiAxMSAwIDIuNTUyMjggMkgxLjQ0NzcyQzAuNjUxMDcgMiAwIDEuMzQ4OTMgMCAyLjE0MjEyVjIyQzAgMjIuNjUxMSAwLjM0ODg3NyAyMyAxLjQ0NzcyIDIzSDIyLjU1MjNDMjMuMzQ5IDIzIDI0IDIyLjY1MTEgMjQgMjJWMi4xNDIxMkMyNCAxLjM0ODkzIDIzLjM0OSAyIDIyLjU1MjMgMkgxMi45NDc3QzEyLjQ0NzcgMiAxMiAyIDEyIDJaIi8+PHBhdGggZmlsbD0iIzFCRTg4MSIgZD0iTTEyIDE1QzEzLjA5NDMgMTUgMTQgMTQuMDk0MyAxNCAxM1YzQzE0IDEuODk1NSAxMy4wOTQzIDEgMTIgMUMyMTAuOTA1NyAxIDAgMS44OTU1IDAgM1YzQzAgNC4wOTQzIDAuOTA1NzEgNSAxMiA1QzE0LjA5NDMgNSAxNSA0LjA5NDMgMTUgM1YxM0MxNSAxNC4wOTQzIDE0LjA5NDMgMTUgMTIgMTVaIi8+PC9zdmc+'
+                });
+                
+                showAlert('测试通知', '这是一个测试通知，说明您的提醒功能正常工作');
+            } else if ('Notification' in window && Notification.permission !== 'denied') {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        testNotification();
+                    }
+                });
+            } else {
+                showAlert('通知权限被拒绝', '请在浏览器设置中允许通知权限');
+            }
+        }
+        
+        // 导出提醒数据
+        function exportReminders() {
+            const exportData = {
+                reminders: reminders,
+                exportTime: new Date().toISOString()
+            };
+            
+            const jsonStr = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `reminders_export_${new Date().getTime()}.json`;
+            a.style.display = 'none';
+            
+            document.body.appendChild(a);
+            a.click();
+            
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
+            
+            showAlert('数据已导出', '您的提醒数据已成功导出');
+        }
+        
+        // 暴露函数到全局
+        window.toggleReminder = toggleReminder;
+        window.editReminder = editReminder;
+        window.deleteReminder = deleteReminder;
+    </script>
+</body>
+</html>

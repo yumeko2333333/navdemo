@@ -1,0 +1,31 @@
+<!--
+将图片改成自定义颜色（建议用于纯色图片）
+但是需要先将
+十六进制颜色需先转换为RGB值，如#6A9955 → rgb(106,153,85)
+
+::after伪元素需要添加到容器元素而非<img>本身，因为<img>是自闭合标签，不能包含子元素。建议用<div>包裹图片
+
+mix-blend-mode在某些旧版本浏览器中需要前缀：
+-webkit-mix-blend-mode: hue;
+mix-blend-mode: hue;
+-->
+
+<div class="img-wrap">
+  <img src="https://store.gz-leila.com/wp-content/uploads/2024/02/auto-spare-9.png">
+</div>
+<style>
+  .img-wrap {
+    position: relative;
+    display: inline-block;
+  }
+  .img-wrap::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(106,153,85,0.5);
+    mix-blend-mode: hue;
+  }
+</style>

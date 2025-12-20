@@ -1,0 +1,59 @@
+{
+  "notes": [
+    {
+      "id": 1762575893768,
+      "title": "内网穿透工具",
+      "category": "work",
+      "content": "<div>你在Gitee的Webhook配置中遇到\"地址无效\"的错误，通常是因为Gitee无法访问你提供的本地网络地址。下面我帮你分析原因和提供解决办法。</div><div><br></div><div>### 🌐 理解核心问题：Gitee为何无法访问你的地址</div><div><br></div><div>你使用的 `http://192.168.0.110:5000/webhook.php` 是一个**局域网（内网）IP地址**。当你在Gitee平台设置Webhook时，Gitee的服务器在互联网上，它**无法直接访问你本地网络中的设备**。这就像外面的人无法通过你家的内部房间号直接找到你的房间。</div><div><br></div><div>错误提示中的\"地址无效\"，通常意味着Gitee在尝试发送Webhook请求时，**根本无法到达或者连接不上**你指定的这个内网地址和端口。</div><div><br></div><div>### 🔧 一步步排查和解决问题</div><div><br></div><div>请按照以下步骤检查和尝试：</div><div><br></div><div>#### 1. 首先确保内网访问正常</div><div><br></div><div>- **在手机浏览器中测试**：在你的手机（运行KSWEB的设备）上，打开浏览器，直接访问 `http://192.168.0.110:5000/webhook.php`。看看你的`webhook.php`页面是否能正常打开（可能会显示一些预设的信息，或者因为缺少POST参数而有提示，但至少应该能连通）。</div><div>- **在同网络下的电脑上测试**：找一台和你手机连接**同一个Wi-Fi**的电脑，用电脑的浏览器访问 `http://192.168.0.110:5000/webhook.php`。如果电脑也访问不了，那说明KSWEB的服务配置可能有问题。</div><div><br></div><div>#### 2. 让Gitee能访问你的本地服务</div><div><br></div><div>这是最关键的一步。既然Gitee在外网访问不了你的内网地址，你就需要一个方法把内网的服务\"暴露\"到公网。主要有以下两种方式：</div><div><br></div><div>- **方案一：使用内网穿透工具（推荐给大多数个人用户）**</div><div>&nbsp; &nbsp; 内网穿透工具可以为你生成一个公共的网址，所有发往这个网址的请求都会被自动转发到你本地的服务。</div><div>&nbsp; &nbsp; - **常用工具**：**ngrok**、**frp**、**花生壳**等。这些工具通常有免费套餐可供测试。</div><div>&nbsp; &nbsp; - **操作示例**（以ngrok为例）：</div><div>&nbsp; &nbsp; &nbsp; &nbsp; 1.&nbsp; 在电脑或能安装客户端的设备上注册并安装ngrok。</div><div>&nbsp; &nbsp; &nbsp; &nbsp; 2.&nbsp; 通过一行命令将你手机的5000端口暴露到公网：`ngrok http 5000`。</div><div>&nbsp; &nbsp; &nbsp; &nbsp; 3.&nbsp; ngrok会生成一个随机的公共网址，比如 `https://1a2b-3c4d-5e6f.ngrok.io`。</div><div>&nbsp; &nbsp; &nbsp; &nbsp; 4.&nbsp; 将Gitee的Webhook地址改为 `https://1a2b-3c4d-5e6f.ngrok.io/webhook.php`。</div><div>&nbsp; &nbsp; - **注意事项**：免费版的ngrok网址在每次重启后都会变化，如果需要固定地址，可能需要付费。</div><div><br></div><div>- **方案二：配置路由器端口转发（依赖网络环境）**</div><div>&nbsp; &nbsp; 这个方法需要你能够登录家里的路由器并进行设置。</div><div>&nbsp; &nbsp; 1.&nbsp; **登录路由器管理界面**：通常是在浏览器输入 `192.168.1.1` 或 `192.168.0.1`。</div><div>&nbsp; &nbsp; 2.&nbsp; **找到端口转发（或虚拟服务器）设置**。</div><div>&nbsp; &nbsp; 3.&nbsp; **添加新规则**：</div><div>&nbsp; &nbsp; &nbsp; &nbsp; - **外部端口**：选择一个路由器对外暴露的端口（例如 `8080`）。</div><div>&nbsp; &nbsp; &nbsp; &nbsp; - **内部IP地址**：填写你手机的IP地址 `192.168.0.110`。</div><div>&nbsp; &nbsp; &nbsp; &nbsp; - **内部端口**：`5000`。</div><div>&nbsp; &nbsp; &nbsp; &nbsp; - **协议**：选择`TCP`或`ALL`。</div><div>&nbsp; &nbsp; 4.&nbsp; **保存并重启路由器**。</div><div>&nbsp; &nbsp; 5.&nbsp; 此时，你需要知道你家的**公网IP地址**（可以在百度搜索\"IP\"查询）。那么新的Webhook地址理论上是 `http://你的公网IP:8080/webhook.php`。</div><div>&nbsp; &nbsp; - **重要提醒**：</div><div>&nbsp; &nbsp; &nbsp; &nbsp; - 很多家庭宽带的公网IP是动态的，会经常变化。</div><div>&nbsp; &nbsp; &nbsp; &nbsp; - 运营商可能根本不提供独立的公网IPv4地址（即处于大内网中），此方法会失效。</div><div>&nbsp; &nbsp; &nbsp; &nbsp; - **此方法会将你的服务暴露在公网，请务必确保`webhook.php`脚本有适当的安全措施**。</div><div><br></div><div>#### 3. 检查KSWEB和脚本配置</div><div><br></div><div>- **KSWEB防火墙**：检查KSWEB内置的防火墙设置，确保没有规则阻止了5000端口的访问。</div><div>- **PHP脚本执行权限**：确保你的`webhook.php`脚本能够正确执行。可以参考其他经验，检查PHP的`shell_exec`等函数是否已启用，以及脚本本身的逻辑。</div><div>- **安全考虑**：在你的`webhook.php`脚本中，**强烈建议添加一个密钥验证**。Gitee支持在Webhook设置中添加Secret，你的脚本需要验证这个Secret，以防止他人随意触发你的自动部署。</div><div><br></div><div>### 💎 总结</div><div><br></div><div>总而言之，问题的根源极大概率是**Gitee无法直接访问你的内网地址 `192.168.0.110`**。你最需要做的是使用**内网穿透工具**（如ngrok）或尝试**配置路由器端口转发**，来提供一个Gitee能够访问的公网地址。</div>",
+      "createdAt": "2025-11-08T04:24:53.768Z",
+      "updatedAt": "2025-11-08T04:25:08.686Z"
+    },
+    {
+      "id": 1,
+      "title": "gitee和github同步",
+      "category": "work",
+      "content": "https://juejin.cn/post/6894928345830522887",
+      "createdAt": "2025-11-05T04:16:38.911Z",
+      "updatedAt": "2025-11-05T04:16:38.911Z"
+    },
+    {
+      "id": 2,
+      "title": "free仓库（需要国外账号）",
+      "category": "work",
+      "content": "https://fj.zx.zbj.com/wenda/38970.html",
+      "createdAt": "2025-10-28T09:42:18.050Z",
+      "updatedAt": "2025-11-05T04:17:25.359Z"
+    }
+  ],
+  "categories": [
+    {
+      "id": "work",
+      "name": "工作",
+      "priority": 3,
+      "color": "blue",
+      "count": 3
+    },
+    {
+      "id": "study",
+      "name": "学习",
+      "priority": 2,
+      "color": "green",
+      "count": 0
+    },
+    {
+      "id": "life",
+      "name": "生活",
+      "priority": 1,
+      "color": "purple",
+      "count": 0
+    },
+    {
+      "id": "other",
+      "name": "其他",
+      "priority": 0,
+      "color": "gray",
+      "count": 0
+    }
+  ],
+  "exportDate": "2025-11-08T04:25:12.743Z"
+}

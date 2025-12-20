@@ -1,0 +1,21 @@
+<!-- HTML 部分 -->
+<img src="/A-TestingDemo/imgtest/small.png" class="gallery-img" data-fullsize="/A-TestingDemo/imgtest/big.png">
+<div class="lightbox" style="display:none;">
+    <span class="close">&times;</span>
+    <img class="lightbox-img">
+</div>
+
+<script>
+// JavaScript 部分
+// 点击小图显示大图
+document.querySelector('.gallery-img').addEventListener('click', function() {
+    const largeUrl = this.getAttribute('data-fullsize');
+    document.querySelector('.lightbox').style.display = 'block';
+    document.querySelector('.lightbox-img').setAttribute('src', largeUrl);
+});
+
+// 点击关闭按钮隐藏灯箱
+document.querySelector('.close').addEventListener('click', function() {
+    document.querySelector('.lightbox').style.display = 'none';
+});
+</script>

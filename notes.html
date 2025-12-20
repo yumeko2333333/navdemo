@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YumeWork - notes</title>
+  <!-- 版本：notes_test7
+        优化了筛选问题
+        保护other分类不被删除
+        新增标签颜色，并且可自定义
+        优化基本富文本功能
+        可上传图片，base64储存在json
+        优化部分交互问题
+  -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #334155;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --accent-color: #3b82f6;
+      --accent-hover: #2563eb;
+      --category-bg: rgba(59, 130, 246, 0.2);
+    }
+
+    .note-card {
+      transition: all 0.2s ease;
+      height: 100%;
+    }
+    .note-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background-color: #1e293b;
+      padding: 1.5rem;
+      border-radius: 0.75rem;
+      width: 90%;
+      max-width: 800px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      animation: modalFadeIn 0.3s ease;
+    }
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .note-editor:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+    .editor-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid #334155;
+    }
+    .toolbar-btn {
+      background-color: #334155;
+      border: none;
+      color: #f1f5f9;
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 0.375rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .toolbar-btn:hover {
+      background-color: #3b82f6;
+    }
+    .note-content h1 { font-size: 1.5rem; font-weight: 700; margin: 1.5rem 0 1rem; color: #93c5fd; }
+    .note-content h2 { font-size: 1.25rem; font-weight: 600; margin: 1.25rem 0 0.75rem; color: #93c5fd; }
+    .note-content p { margin-bottom: 1rem; }
+    .note-content ul, .note-content ol { margin: 1rem 0 1rem 1.5rem; }
+    .note-content ul { list-style-type: disc; }
+    .note-content ol { list-style-type: decimal; }
+    .note-content li { margin-bottom: 0.5rem; }
+    .note-content strong { font-weight: 600; color: #f8fafc; }
+    .note-content em { font-style: italic; color: #cbd5e1; }
+    .note-content a { color: #60a5fa; text-decoration: underline; }
+    .note-content code { background-color: rgba(51, 65, 85, 0.5); padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-family: monospace; font-size: 0.875rem; }
+    .note-content pre { background-color: rgba(51, 65, 85, 0.5); padding: 1rem; border-radius: 0.5rem; margin: 1rem 0; overflow-x: auto; }
+    .note-content img { max-width: 100%; margin: 1rem 0; border-radius: 0.5rem; }
+    .loading-spinner {
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid #f3f4f6;
+      border-radius: 50%;
+      border-top-color: #3b82f6;
+      animation: spin 1s ease-in-out infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+    .category-active {
+      border: 2px solid #3b82f6;
+    }
+    .color-preview {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    /* 导航样式 - 与index.html保持一致 */
+    .header-nav {
+      display: flex;
+      gap: 0.25rem;
+    }
+
+    .nav-item {
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
+      color: var(--text-secondary, #94a3b8);
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .nav-item:hover {
+      color: var(--text-primary, #f1f5f9);
+      background-color: rgba(51, 65, 85, 0.5);
+    }
+
+    .nav-item.active {
+      color: var(--text-primary, #f1f5f9);
+      background-color: var(--accent-color, #3b82f6);
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .control-btn {
+      padding: 0.5rem;
+      background-color: var(--bg-secondary, #1e293b);
+      border: 1px solid var(--bg-tertiary, #334155);
+      color: var(--text-secondary, #94a3b8);
+      border-radius: 0.375rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .control-btn:hover {
+      background-color: var(--bg-tertiary, #334155);
+      color: var(--text-primary, #f1f5f9);
+    }
+
+    .current-datetime {
+      color: var(--text-secondary, #94a3b8);
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+    }
+
+    .current-datetime .date {
+      margin-right: 0.5rem;
+    }
+
+    .current-datetime .time {
+      color: #93c5fd;
+      font-weight: 500;
+      font-family: monospace;
+    }
+
+    /* 修复分类标签颜色显示问题 */
+    .category-badge {
+      background-color: var(--category-bg, rgba(59, 130, 246, 0.2));
+      color: #93c5fd;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    /* 优化分类选择样式 */
+    .category-item {
+      transition: all 0.2s ease;
+      border: 2px solid transparent;
+      padding: 0.5rem 1rem !important;
+      margin: 0 !important;
+    }
+
+    .category-item.category-active {
+      border-color: #3b82f6;
+      background-color: #3b82f6 !important;
+      color: white !important;
+    }
+
+    .category-item.category-active span.bg-slate-600 {
+      background-color: rgba(255, 255, 255, 0.3) !important;
+      color: white;
+    }
+
+    /* 响应式调整 */
+    @media (max-width: 1024px) {
+      .header-content {
+        flex-wrap: wrap;
+      }
+
+      .header-nav {
+        order: 3;
+        width: 100%;
+        margin-top: 0.75rem;
+        margin-bottom: 0.75rem;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .current-datetime {
+        font-size: 0.75rem;
+      }
+
+      .nav-item {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .header-controls {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .current-datetime {
+        order: 4;
+        width: 100%;
+        margin-top: 0.5rem;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+  <!-- 顶部标题栏 - 使用与index.html相同的样式 -->
+  <header class="bg-gradient-to-r from-slate-800 to-slate-900 border-b border-slate-700 py-4">
+    <div class="container mx-auto px-4">
+      <div class="header-content flex items-center justify-between">
+        <!-- 左侧标题 -->
+        <div class="flex items-center">
+          <i class="fas fa-moon text-blue-400 mr-3 text-xl"></i>
+          <h1 class="text-xl font-semibold text-blue-400">YumeWork</h1>
+        </div>
+        
+        <!-- 中间导航 - 使用与index.html相同的样式 -->
+        <nav class="header-nav mx-4">
+          <a href="index.html" class="nav-item mr-1"><i class="fas fa-link mr-1"></i>链接</a>
+          <a href="notes.html" class="nav-item active mr-1"><i class="fas fa-sticky-note mr-1"></i>笔记</a>
+          <a href="recipes.html" class="nav-item"><i class="fas fa-fish mr-1"></i>食谱</a>
+        </nav>
+
+        <!-- 搜索框 -->
+        <div class="">
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-search text-slate-400"></i>
+            </div>
+            <input type="text" id="searchInput" class="w-full bg-slate-800 border border-slate-600 rounded-full pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition-colors" placeholder="搜索笔记标题或内容...">
+          </div>
+        </div>
+        
+        <!-- 右侧控制区 -->
+        <div class="header-controls flex items-center gap-1">
+          <!-- 当前日期时间 -->
+          <div class="current-datetime">
+            <span class="date" id="currentDate">--</span>
+            <span class="time" id="currentTime">--:--:--</span>
+          </div>
+          
+          <!-- 控制按钮 -->
+          <button id="exportBtn" class="control-btn" title="导出">
+            <i class="fas fa-file-export"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主内容区 -->
+  <main class="flex-1 container mx-auto px-4 py-6">    
+    <!-- 分类横向滚动栏 -->
+    <div class="mb-6 overflow-x-auto scrollbar-hide">
+      <div class="flex space-x-2 pb-2 min-w-max">
+        <div class="category-item px-4 py-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center cursor-pointer whitespace-nowrap" data-category="all" id="all-category">
+          <span>全部笔记</span>
+          <span class="ml-2 bg-slate-600 text-xs px-2 py-0.5 rounded-full" id="all-count">0</span>
+        </div>
+        <!-- 分类将通过JavaScript动态生成 -->
+        <div id="categories-container" class="flex space-x-2"></div>
+        <button id="addCategoryBtn" class="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-full text-sm transition-colors whitespace-nowrap">
+          <i class="fas fa-plus"></i> 添加分类
+        </button>
+      </div>
+    </div>
+    
+    <!-- 排序控制 -->
+    <div class="mb-6 flex flex-wrap justify-between items-center gap-4">
+      <div class="flex items-center gap-2">
+        <span class="text-slate-400 text-sm">排序方式：</span>
+        <select id="sortSelector" class="bg-slate-800 border border-slate-600 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+          <option value="updated-desc">最新更新</option>
+          <option value="updated-asc">最早更新</option>
+          <option value="title-asc">标题 A-Z</option>
+          <option value="title-desc">标题 Z-A</option>
+          <option value="priority-desc">优先级高→低</option>
+          <option value="priority-asc">优先级低→高</option>
+        </select>
+      </div>
+      
+      <div class="text-slate-400 text-sm" id="notes-count">
+        共 <span id="total-notes">0</span> 条笔记
+      </div>
+    </div>
+    
+    <!-- 笔记列表视图 -->
+    <div id="notesListContainer">
+      <!-- 笔记网格 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="notes-container">
+        <!-- 笔记将通过JavaScript动态生成 -->
+      </div>
+      
+      <!-- 加载更多 -->
+      <div class="mt-8 text-center" id="loadMoreContainer">
+        <button id="loadMoreBtn" class="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-lg text-sm transition-colors">
+          <i class="fas fa-arrow-down mr-2"></i> 加载更多
+        </button>
+      </div>
+      
+      <!-- 加载状态 -->
+      <div id="loadingIndicator" class="hidden text-center py-8">
+        <div class="loading-spinner mx-auto mb-2"></div>
+        <p class="text-slate-400 text-sm">加载中...</p>
+      </div>
+      
+      <!-- 无结果提示 -->
+      <div id="noResults" class="hidden text-center py-10">
+        <i class="fas fa-search text-slate-400 text-4xl mb-4"></i>
+        <p class="text-slate-400">没有找到匹配的笔记</p>
+      </div>
+    </div>
+    
+    <!-- 笔记详情视图 -->
+    <div id="noteDetailContainer" class="hidden">
+      <div class="max-w-3xl mx-auto">
+        <div class="mb-6 pb-4 border-b border-slate-700">
+          <h1 class="text-2xl font-bold text-blue-300 mb-3" id="detailTitle"></h1>
+          <div class="flex flex-wrap gap-4 text-slate-400 text-sm">
+            <span id="detailCategory"><i class="fas fa-folder mr-1"></i></span>
+            <span id="detailCreated"><i class="fas fa-calendar-plus mr-1"></i></span>
+            <span id="detailUpdated"><i class="fas fa-calendar-check mr-1"></i></span>
+            <span id="detailWordCount"><i class="fas fa-font mr-1"></i></span>
+          </div>
+        </div>
+        
+        <div class="note-content mb-6" id="detailContent">
+          <!-- 笔记内容将在这里显示 -->
+        </div>
+        
+        <div class="flex justify-end gap-3 pt-4 border-t border-slate-700">
+          <button id="detailBackBtn" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors">
+            <i class="fas fa-arrow-left mr-2"></i> 返回列表
+          </button>
+          <button id="detailEditBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+            <i class="fas fa-edit mr-2"></i> 编辑笔记
+          </button>
+          <button id="detailDeleteBtn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
+            <i class="fas fa-trash mr-2"></i> 删除笔记
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 页脚 -->
+  <footer class="bg-gradient-to-r from-slate-800 to-slate-900 border-t border-slate-700 py-4 mt-8">
+    <div class="container mx-auto px-4">
+      <div class="flex flex-col md:flex-row justify-between items-center">
+        <div class="flex space-x-5 mb-3 md:mb-0">
+          <a href="#" class="text-blue-400 hover:text-blue-300 text-sm transition-colors"><i class="fas fa-question-circle mr-1.5"></i> 帮助</a>
+          <a href="#" class="text-blue-400 hover:text-blue-300 text-sm transition-colors"><i class="fas fa-shield-alt mr-1.5"></i> 隐私</a>
+          <a href="#" class="text-blue-400 hover:text-blue-300 text-sm transition-colors"><i class="fas fa-file-contract mr-1.5"></i> 条款</a>
+        </div>
+        <div class="text-slate-400 text-sm">
+          © 2025 YumeWork | 版权所有
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- 浮动操作按钮 -->
+  <div class="fixed bottom-6 right-6 z-50">
+    <button id="addNoteBtn" class="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all" title="添加笔记">
+      <i class="fas fa-plus text-xl"></i>
+    </button>
+  </div>
+
+  <!-- 笔记编辑模态框 -->
+  <div id="noteModal" class="modal">
+    <div class="modal-content">
+      <h2 id="noteModalTitle" class="text-lg font-semibold text-blue-400 mb-4 flex items-center">
+        <i class="fas fa-plus-circle mr-2"></i> 添加新笔记
+      </h2>
+      
+      <div class="space-y-4">
+        <input type="hidden" id="noteId">
+        
+        <div>
+          <label class="block text-slate-400 text-sm mb-2">标题</label>
+          <input type="text" id="noteTitle" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors" placeholder="笔记标题">
+        </div>
+        
+        <div>
+          <label class="block text-slate-400 text-sm mb-2">分类</label>
+          <select id="noteCategory" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors">
+            <!-- 分类将通过JavaScript动态生成 -->
+          </select>
+        </div>
+        
+        <div>
+          <label class="block text-slate-400 text-sm mb-2">内容</label>
+          <div class="editor-toolbar">
+            <button class="toolbar-btn" data-command="formatBlock" data-value="<h1>" title="标题 1">
+              <i class="fas fa-heading"></i><sub>1</sub>
+            </button>
+            <button class="toolbar-btn" data-command="formatBlock" data-value="<h2>" title="标题 2">
+              <i class="fas fa-heading"></i><sub>2</sub>
+            </button>
+            <button class="toolbar-btn" data-command="formatBlock" data-value="<p>" title="段落">
+              <i class="fas fa-paragraph"></i>
+            </button>
+            <div class="h-6 border-r border-slate-600 mx-1"></div>
+            <button class="toolbar-btn" data-command="bold" title="加粗">
+              <i class="fas fa-bold"></i>
+            </button>
+            <button class="toolbar-btn" data-command="italic" title="斜体">
+              <i class="fas fa-italic"></i>
+            </button>
+            <div class="h-6 border-r border-slate-600 mx-1"></div>
+            <button class="toolbar-btn" data-command="insertUnorderedList" title="无序列表">
+              <i class="fas fa-list-ul"></i>
+            </button>
+            <button class="toolbar-btn" data-command="insertOrderedList" title="有序列表">
+              <i class="fas fa-list-ol"></i>
+            </button>
+            <div class="h-6 border-r border-slate-600 mx-1"></div>
+            <button class="toolbar-btn" data-command="formatBlock" data-value="<pre><code>" title="代码块">
+              <i class="fas fa-code"></i>
+            </button>
+            <button class="toolbar-btn" id="createLinkBtn" title="插入链接">
+              <i class="fas fa-link"></i>
+            </button>
+            <button class="toolbar-btn" id="imageUploadBtn" title="上传图片">
+              <i class="fas fa-image"></i>
+            </button>
+            <div class="h-6 border-r border-slate-600 mx-1"></div>
+            <button class="toolbar-btn" id="undoBtn" title="撤销">
+              <i class="fas fa-undo"></i>
+            </button>
+            <button class="toolbar-btn" id="redoBtn" title="重做">
+              <i class="fas fa-redo"></i>
+            </button>
+          </div>
+          <div id="noteContent" class="note-editor w-full min-h-64 bg-slate-900 border border-slate-600 rounded-lg p-4 text-slate-100 overflow-auto" contenteditable="true"></div>
+          <div class="text-slate-400 text-sm mt-2 flex justify-between">
+            <span id="wordCount">字数: 0</span>
+            <span id="charCount">字符数: 0</span>
+          </div>
+        </div>
+        
+        <div class="flex justify-end space-x-3 pt-2">
+          <button id="deleteNoteBtn" class="hidden px-4 py-2 text-red-400 hover:text-red-300 text-sm transition-colors">
+            <i class="fas fa-trash mr-1"></i> 删除
+          </button>
+          <button id="cancelNoteBtn" class="px-4 py-2 text-slate-400 hover:text-slate-200 text-sm transition-colors">
+            取消
+          </button>
+          <button id="saveNoteBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors flex items-center">
+            <i class="fas fa-save mr-1"></i> 保存
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 分类编辑模态框 -->
+  <div id="categoryModal" class="modal">
+    <div class="modal-content">
+      <h2 class="text-lg font-semibold text-blue-400 mb-4 flex items-center">
+        <i class="fas fa-edit mr-2"></i> 编辑分类
+      </h2>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-slate-400 text-sm mb-2">分类名称</label>
+          <input type="text" id="categoryName" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors" placeholder="输入分类名称">
+        </div>
+        
+        <div>
+          <label class="block text-slate-400 text-sm mb-2">分类ID</label>
+          <input type="text" id="categoryId" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors" placeholder="英文ID，如：work">
+        </div>
+        
+        <div>
+          <label class="block text-slate-400 text-sm mb-2">优先级 (数字越大优先级越高)</label>
+          <input type="number" id="categoryPriority" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors" value="1" min="1" max="100">
+        </div>
+        
+        <div>
+          <label class="block text-slate-400 text-sm mb-2">颜色标签 (可选)</label>
+          <div class="flex gap-2 flex-wrap mb-2">
+            <button class="color-option w-8 h-8 rounded-full bg-blue-500 border-2 border-transparent" data-color="blue"></button>
+            <button class="color-option w-8 h-8 rounded-full bg-green-500 border-2 border-transparent" data-color="green"></button>
+            <button class="color-option w-8 h-8 rounded-full bg-purple-500 border-2 border-transparent" data-color="purple"></button>
+            <button class="color-option w-8 h-8 rounded-full bg-red-500 border-2 border-transparent" data-color="red"></button>
+            <button class="color-option w-8 h-8 rounded-full bg-yellow-500 border-2 border-transparent" data-color="yellow"></button>
+            <button class="color-option w-8 h-8 rounded-full bg-pink-500 border-2 border-transparent" data-color="pink"></button>
+          </div>
+          <div class="flex items-center">
+            <span class="color-preview" id="customColorPreview" style="background-color: gray;"></span>
+            <input type="text" id="customColor" class="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors" placeholder="自定义颜色 (十六进制，如: #3b82f6)">
+          </div>
+        </div>
+        
+        <div class="flex justify-end space-x-3 pt-2">
+          <button id="deleteCategoryBtn" class="px-4 py-2 text-red-400 hover:text-red-300 text-sm transition-colors">
+            <i class="fas fa-trash mr-1"></i> 删除
+          </button>
+          <button id="cancelCategoryBtn" class="px-4 py-2 text-slate-400 hover:text-slate-200 text-sm transition-colors">
+            取消
+          </button>
+          <button id="saveCategoryBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors">
+            保存
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 隐藏的图片上传输入 -->
+  <input type="file" id="imageInput" accept="image/*" style="display: none;">
+
+  <script>
+    // 数据存储
+    let notesData = [];
+    let categoriesData = [];
+    let filteredNotes = [];
+    let currentCategory = 'all';
+    let currentSearchTerm = '';
+    let displayCount = 9;
+    let currentSort = 'updated-desc';
+    let editingCategoryId = null;
+    let editingNoteId = null;
+    let currentDetailNoteId = null;
+    let isLoading = false;
+    let selectedColor = 'gray';
+    
+    // 导航项点击事件
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', function (e) {
+        /*e.preventDefault();
+        
+         // 移除所有导航项的active类
+        document.querySelectorAll('.nav-item').forEach(nav => {
+          nav.classList.remove('active');
+        });
+        
+        // 为当前点击的导航项添加active类
+        this.classList.add('active');*/
+
+        // 如果点击的是食谱导航，显示提示
+        // if (this.textContent.includes('食谱')) {
+        //   alert('食谱即将上线，敬请期待！');
+        // }
+      });
+    });
+
+    // 默认数据（当JSON文件加载失败时使用）
+    const defaultData = {
+      notes: [
+        {
+          id: 1762316198911,
+          title: "JavaScript学习笔记",
+          category: "work",
+          content: "<h2>JavaScript基础语法</h2><p>这是一门用于网页交互的编程语言。</p><p><strong>主要特点：</strong></p><ul><li>动态类型</li><li>原型继承</li><li>函数式编程支持</li></ul>",
+          createdAt: "2025-11-05T04:16:38.911Z",
+          updatedAt: "2025-11-05T04:16:38.911Z"
+        },
+        {
+          id: 1761644538050,
+          title: "React开发指南",
+          category: "study",
+          content: "<h2>React核心概念</h2><p>React是一个用于构建用户界面的JavaScript库。</p><p><strong>主要特性：</strong></p><ul><li>组件化开发</li><li>虚拟DOM</li><li>单向数据流</li></ul>",
+          createdAt: "2025-10-28T09:42:18.050Z",
+          updatedAt: "2025-11-05T04:17:25.359Z"
+        }
+      ],
+      categories: [
+        {
+          id: "work",
+          name: "工作",
+          priority: 3,
+          color: "blue"
+        },
+        {
+          id: "study",
+          name: "学习",
+          priority: 2,
+          color: "green"
+        },
+        {
+          id: "life",
+          name: "生活",
+          priority: 1,
+          color: "purple"
+        }
+      ]
+    };
+
+    // 初始化函数
+    async function init() {
+      showLoading('加载数据中...');
+      await loadData();
+      renderCategories();
+      renderNotes();
+      initEventListeners();
+      startDateTimeUpdate();
+      hideLoading();
+    }
+
+    // 加载数据
+    async function loadData() {
+      try {
+        const response = await fetch('notesdata.json');
+        if (response.ok) {
+          const fileData = await response.json();
+          notesData = fileData.notes || [];
+          categoriesData = fileData.categories || [];
+        } else {
+          throw new Error('JSON文件加载失败');
+        }
+      } catch (error) {
+        console.warn('使用默认数据:', error);
+        notesData = defaultData.notes;
+        categoriesData = defaultData.categories;
+      }
+      
+      // 确保存在"其他"分类
+      if (!categoriesData.some(cat => cat.id === 'other')) {
+        categoriesData.push({ 
+          id: 'other', 
+          name: '其他', 
+          priority: 0,
+          color: 'gray'
+        });
+      }
+      
+      updateCategoryCounts();
+    }
+
+    // 更新分类计数
+    function updateCategoryCounts() {
+      categoriesData.forEach(category => {
+        category.count = notesData.filter(note => note.category === category.id).length;
+      });
+      
+      document.getElementById('all-count').textContent = notesData.length;
+      document.getElementById('total-notes').textContent = notesData.length;
+    }
+
+    // 渲染分类（按优先级排序）
+    function renderCategories() {
+      const container = document.getElementById('categories-container');
+      const select = document.getElementById('noteCategory');
+      
+      container.innerHTML = '';
+      select.innerHTML = '';
+      
+      // 按优先级排序
+      const sortedCategories = [...categoriesData].sort((a, b) => b.priority - a.priority);
+      
+      sortedCategories.forEach(category => {
+        // 根据分类颜色设置样式
+        const colorClasses = {
+          blue: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+          green: 'bg-green-500/20 text-green-300 border-green-500/30',
+          purple: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+          red: 'bg-red-500/20 text-red-300 border-red-500/30',
+          yellow: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+          pink: 'bg-pink-500/20 text-pink-300 border-pink-500/30',
+          gray: 'bg-slate-600 text-slate-300 border-slate-500'
+        };
+        
+        const badgeClass = colorClasses[category.color] || colorClasses.gray;
+        const isActive = currentCategory === category.id;
+        
+        // 添加到水平分类栏
+        const div = document.createElement('div');
+        div.className = `category-item px-4 py-2 rounded-full ${badgeClass} flex items-center cursor-pointer whitespace-nowrap ${isActive ? 'category-active' : ''}`;
+        div.dataset.category = category.id;
+        div.innerHTML = `
+          <span>${category.name}</span>
+          <span class="ml-2 bg-slate-600/50 text-xs px-2 py-0.5 rounded-full">${category.count}</span>
+          <button class="ml-2 text-slate-400 hover:text-slate-200 p-1 rounded transition-colors" data-id="${category.id}" title="编辑分类">
+            <i class="fas fa-edit text-xs"></i>
+          </button>
+        `;
+        container.appendChild(div);
+        
+        // 添加到选择框
+        const option = document.createElement('option');
+        option.value = category.id;
+        option.textContent = category.name;
+        select.appendChild(option);
+      });
+    }
+
+    // 渲染笔记列表（分页加载）
+    function renderNotes() {
+      const container = document.getElementById('notes-container');
+      const noResults = document.getElementById('noResults');
+      const loadMoreContainer = document.getElementById('loadMoreContainer');
+      
+      // 过滤和排序笔记
+      filteredNotes = filterAndSortNotes();
+      
+      // 清空现有内容
+      if (displayCount === 9) {
+        container.innerHTML = '';
+      }
+      
+      // 显示/隐藏无结果提示
+      if (filteredNotes.length === 0 && displayCount === 9) {
+        noResults.classList.remove('hidden');
+        loadMoreContainer.classList.add('hidden');
+      } else {
+        noResults.classList.add('hidden');
+      }
+      
+      // 显示笔记（分页）
+      const notesToShow = filteredNotes.slice(0, displayCount);
+      
+      notesToShow.forEach(note => {
+        const category = categoriesData.find(c => c.id === note.category) || { name: '其他', color: 'gray' };
+        const updatedDate = new Date(note.updatedAt);
+        const daysAgo = Math.floor((Date.now() - updatedDate) / (1000 * 60 * 60 * 24));
+        const timeText = daysAgo === 0 ? '今天更新' : daysAgo === 1 ? '昨天更新' : `${daysAgo}天前更新`;
+        
+        // 提取纯文本预览
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = note.content;
+        const previewText = tempDiv.textContent.trim().substring(0, 100) + (tempDiv.textContent.length > 100 ? '...' : '');
+        
+        // 计算字数
+        const wordCount = countWords(note.content);
+        
+        // 根据分类颜色设置标签样式
+        const colorClasses = {
+          blue: 'bg-blue-500/20 text-blue-300',
+          green: 'bg-green-500/20 text-green-300', 
+          purple: 'bg-purple-500/20 text-purple-300',
+          red: 'bg-red-500/20 text-red-300',
+          yellow: 'bg-yellow-500/20 text-yellow-300',
+          pink: 'bg-pink-500/20 text-pink-300',
+          gray: 'bg-slate-600 text-slate-300'
+        };
+        
+        const badgeClass = colorClasses[category.color] || colorClasses.gray;
+        
+        const noteCard = document.createElement('div');
+        noteCard.className = 'bg-slate-800 border border-slate-700 rounded-xl overflow-hidden note-card flex flex-col';
+        noteCard.dataset.id = note.id;
+        
+        noteCard.innerHTML = `
+          <div class="p-5 flex-1 flex flex-col">
+            <div class="flex justify-between items-start mb-3">
+              <h3 class="font-medium text-slate-100 truncate flex-1 mr-2">${note.title}</h3>
+              <span class="${badgeClass} px-2.5 py-0.5 text-xs rounded-full whitespace-nowrap">${category.name}</span>
+            </div>
+            <div class="text-slate-400 text-sm mb-4 line-clamp-3 flex-1">${previewText}</div>
+            <div class="flex justify-between items-center">
+              <span class="text-xs text-slate-500">${timeText} · ${wordCount}字</span>
+              <div class="flex space-x-2">
+                <button class="text-blue-400 hover:text-blue-300 edit-note p-1 rounded transition-colors" data-id="${note.id}" title="编辑">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="text-red-400 hover:text-red-300 delete-note p-1 rounded transition-colors" data-id="${note.id}" title="删除">
+                  <i class="fas fa-trash"></i>
+                </button>
+                <button class="text-slate-400 hover:text-slate-200 view-note p-1 rounded transition-colors" data-id="${note.id}" title="查看详情">
+                  <i class="fas fa-eye"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        container.appendChild(noteCard);
+      });
+      
+      // 显示/隐藏加载更多按钮
+      if (filteredNotes.length > displayCount) {
+        loadMoreContainer.classList.remove('hidden');
+      } else {
+        loadMoreContainer.classList.add('hidden');
+      }
+    }
+
+    // 显示笔记详情
+    function showNoteDetail(noteId) {
+      const note = notesData.find(n => n.id == noteId);
+      if (!note) return;
+      
+      currentDetailNoteId = noteId;
+      
+      // 更新视图显示状态
+      document.getElementById('notesListContainer').classList.add('hidden');
+      document.getElementById('noteDetailContainer').classList.remove('hidden');
+      
+      // 填充详情数据
+      const category = categoriesData.find(c => c.id === note.category) || { name: '其他' };
+      const createdAt = new Date(note.createdAt).toLocaleString('zh-CN');
+      const updatedAt = new Date(note.updatedAt).toLocaleString('zh-CN');
+      const wordCount = countWords(note.content);
+      const charCount = note.content.length;
+      
+      document.getElementById('detailTitle').textContent = note.title;
+      document.getElementById('detailCategory').innerHTML = `<i class="fas fa-folder mr-1"></i>${category.name}`;
+      document.getElementById('detailCreated').innerHTML = `<i class="fas fa-calendar-plus mr-1"></i>创建于 ${createdAt}`;
+      document.getElementById('detailUpdated').innerHTML = `<i class="fas fa-calendar-check mr-1"></i>更新于 ${updatedAt}`;
+      document.getElementById('detailWordCount').innerHTML = `<i class="fas fa-font mr-1"></i>${wordCount}字 / ${charCount}字符`;
+      document.getElementById('detailContent').innerHTML = note.content;
+    }
+
+    // 返回笔记列表
+    function backToNotesList() {
+      currentDetailNoteId = null;
+      document.getElementById('notesListContainer').classList.remove('hidden');
+      document.getElementById('noteDetailContainer').classList.add('hidden');
+    }
+
+    // 过滤和排序笔记
+    function filterAndSortNotes() {
+      let filtered = [...notesData];
+      
+      // 按分类过滤
+      if (currentCategory !== 'all') {
+        filtered = filtered.filter(note => note.category === currentCategory);
+      }
+      
+      // 按搜索词过滤
+      if (currentSearchTerm) {
+        const searchTerm = currentSearchTerm.toLowerCase();
+        filtered = filtered.filter(note => 
+          note.title.toLowerCase().includes(searchTerm) ||
+          note.content.toLowerCase().includes(searchTerm)
+        );
+      }
+      
+      // 按选择的方式排序
+      switch(currentSort) {
+        case 'updated-desc':
+          return filtered.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+        case 'updated-asc':
+          return filtered.sort((a, b) => new Date(a.updatedAt) - new Date(b.updatedAt));
+        case 'title-asc':
+          return filtered.sort((a, b) => a.title.localeCompare(b.title));
+        case 'title-desc':
+          return filtered.sort((a, b) => b.title.localeCompare(a.title));
+        case 'priority-desc':
+          return filtered.sort((a, b) => {
+            const catA = categoriesData.find(c => c.id === a.category) || { priority: 0 };
+            const catB = categoriesData.find(c => c.id === b.category) || { priority: 0 };
+            return catB.priority - catA.priority;
+          });
+        case 'priority-asc':
+          return filtered.sort((a, b) => {
+            const catA = categoriesData.find(c => c.id === a.category) || { priority: 0 };
+            const catB = categoriesData.find(c => c.id === b.category) || { priority: 0 };
+            return catA.priority - catB.priority;
+          });
+        default:
+          return filtered;
+      }
+    }
+
+    // 初始化事件监听器
+    function initEventListeners() {
+      // 分类筛选
+      document.getElementById('categories-container').addEventListener('click', function(e) {
+        const categoryItem = e.target.closest('.category-item');
+        if (categoryItem && !e.target.closest('button')) {
+          currentCategory = categoryItem.dataset.category;
+          
+          // 更新选中状态 - 使用更稳定的方式
+          document.querySelectorAll('.category-item').forEach(item => {
+            item.classList.remove('category-active');
+            // 恢复原始颜色类
+            const categoryId = item.dataset.category;
+            const category = categoriesData.find(c => c.id === categoryId);
+            if (category) {
+              const colorClasses = {
+                blue: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+                green: 'bg-green-500/20 text-green-300 border-green-500/30',
+                purple: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+                red: 'bg-red-500/20 text-red-300 border-red-500/30',
+                yellow: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+                pink: 'bg-pink-500/20 text-pink-300 border-pink-500/30',
+                gray: 'bg-slate-600 text-slate-300 border-slate-500'
+              };
+              const badgeClass = colorClasses[category.color] || colorClasses.gray;
+              item.className = `category-item px-4 py-2 rounded-full ${badgeClass} flex items-center cursor-pointer whitespace-nowrap`;
+            }
+          });
+          
+          // 为当前选中的分类添加激活状态
+          categoryItem.classList.add('category-active');
+          
+          // 全部笔记按钮也移除蓝色背景
+          document.getElementById('all-category').classList.remove('bg-blue-600', 'text-white');
+          document.getElementById('all-category').classList.add('bg-slate-800', 'text-slate-200');
+          
+          // 重新渲染笔记
+          displayCount = 9;
+          renderNotes();
+        }
+        
+        // 分类编辑按钮点击
+        const editBtn = e.target.closest('button[data-id]');
+        if (editBtn) {
+          e.stopPropagation();
+          editingCategoryId = editBtn.dataset.id;
+          const category = categoriesData.find(c => c.id === editingCategoryId);
+          
+          if (category) {
+            document.getElementById('categoryName').value = category.name;
+            document.getElementById('categoryId').value = category.id;
+            document.getElementById('categoryId').readOnly = true; // 编辑时不能修改ID
+            document.getElementById('categoryPriority').value = category.priority;
+            
+            // 设置颜色选项
+            document.querySelectorAll('.color-option').forEach(btn => {
+              btn.classList.remove('border-blue-300');
+              if (btn.dataset.color === category.color) {
+                btn.classList.add('border-blue-300');
+                selectedColor = btn.dataset.color;
+              }
+            });
+            
+            // 设置自定义颜色
+            document.getElementById('customColor').value = '';
+            
+            // 隐藏删除按钮如果是"其他"分类
+            if (editingCategoryId === 'other') {
+              document.getElementById('deleteCategoryBtn').classList.add('hidden');
+            } else {
+              document.getElementById('deleteCategoryBtn').classList.remove('hidden');
+            }
+            
+            document.getElementById('categoryModal').style.display = 'flex';
+          }
+        }
+      });
+      
+      // 全部笔记按钮
+      document.getElementById('all-category').addEventListener('click', function() {
+        currentCategory = 'all';
+        
+        // 更新选中状态
+        document.querySelectorAll('.category-item').forEach(item => {
+          item.classList.remove('category-active');
+          // 恢复原始颜色类
+          const categoryId = item.dataset.category;
+          const category = categoriesData.find(c => c.id === categoryId);
+          if (category) {
+            const colorClasses = {
+              blue: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+              green: 'bg-green-500/20 text-green-300 border-green-500/30',
+              purple: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+              red: 'bg-red-500/20 text-red-300 border-red-500/30',
+              yellow: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+              pink: 'bg-pink-500/20 text-pink-300 border-pink-500/30',
+              gray: 'bg-slate-600 text-slate-300 border-slate-500'
+            };
+            const badgeClass = colorClasses[category.color] || colorClasses.gray;
+            item.className = `category-item px-4 py-2 rounded-full ${badgeClass} flex items-center cursor-pointer whitespace-nowrap`;
+          }
+        });
+        
+        // 全部笔记按钮设置蓝色背景
+        this.classList.remove('bg-slate-800', 'text-slate-200');
+        this.classList.add('bg-blue-600', 'text-white');
+        
+        displayCount = 9;
+        renderNotes();
+      });
+      
+      // 排序方式变更
+      document.getElementById('sortSelector').addEventListener('change', function() {
+        currentSort = this.value;
+        displayCount = 9;
+        renderNotes();
+      });
+      
+      // 搜索功能
+      document.getElementById('searchInput').addEventListener('input', function(e) {
+        currentSearchTerm = e.target.value.trim();
+        displayCount = 9;
+        renderNotes();
+      });
+      
+      // 加载更多
+      document.getElementById('loadMoreBtn').addEventListener('click', function() {
+        displayCount += 9;
+        renderNotes();
+      });
+      
+      // 添加笔记
+      document.getElementById('addNoteBtn').addEventListener('click', function() {
+        document.getElementById('noteModalTitle').innerHTML = '<i class="fas fa-plus-circle mr-2"></i> 添加新笔记';
+        document.getElementById('noteId').value = '';
+        document.getElementById('noteTitle').value = '';
+        document.getElementById('noteContent').innerHTML = '';
+        document.getElementById('deleteNoteBtn').classList.add('hidden');
+        editingNoteId = null;
+        
+        // 重置字数统计
+        updateWordCount();
+        
+        document.getElementById('noteModal').style.display = 'flex';
+      });
+      
+      // 添加分类
+      document.getElementById('addCategoryBtn').addEventListener('click', function() {
+        editingCategoryId = null;
+        document.getElementById('categoryName').value = '';
+        document.getElementById('categoryId').value = '';
+        document.getElementById('categoryId').readOnly = false;
+        document.getElementById('categoryPriority').value = 1;
+        
+        // 重置颜色选项
+        document.querySelectorAll('.color-option').forEach(btn => {
+          btn.classList.remove('border-blue-300');
+        });
+        
+        // 重置自定义颜色
+        document.getElementById('customColor').value = '';
+        
+        // 显示删除按钮
+        document.getElementById('deleteCategoryBtn').classList.remove('hidden');
+        
+        document.getElementById('categoryModal').style.display = 'flex';
+      });
+      
+      // 颜色选择
+      document.querySelectorAll('.color-option').forEach(btn => {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.color-option').forEach(b => b.classList.remove('border-blue-300'));
+          this.classList.add('border-blue-300');
+          selectedColor = this.dataset.color;
+          document.getElementById('customColor').value = '';
+        });
+      });
+      
+      // 自定义颜色输入
+      document.getElementById('customColor').addEventListener('input', function() {
+        const color = this.value.trim();
+        if (color) {
+          document.getElementById('customColorPreview').style.backgroundColor = color;
+          selectedColor = color;
+          document.querySelectorAll('.color-option').forEach(b => b.classList.remove('border-blue-300'));
+        }
+      });
+      
+      // 保存笔记
+      document.getElementById('saveNoteBtn').addEventListener('click', function() {
+        const title = document.getElementById('noteTitle').value.trim();
+        const category = document.getElementById('noteCategory').value;
+        const content = document.getElementById('noteContent').innerHTML.trim();
+        const noteId = document.getElementById('noteId').value;
+        
+        if (!title) {
+          alert('请填写笔记标题');
+          return;
+        }
+        
+        if (noteId) {
+          // 编辑现有笔记
+          const index = notesData.findIndex(note => note.id == noteId);
+          if (index !== -1) {
+            notesData[index] = {
+              ...notesData[index],
+              title,
+              category,
+              content,
+              updatedAt: new Date().toISOString()
+            };
+          }
+        } else {
+          // 创建新笔记
+          const newNote = {
+            id: Date.now(),
+            title,
+            category,
+            content,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          
+          notesData.unshift(newNote);
+        }
+        
+        updateCategoryCounts();
+        renderCategories();
+        renderNotes();
+        
+        showToast(noteId ? '笔记已更新' : '笔记已创建');
+        document.getElementById('noteModal').style.display = 'none';
+      });
+      
+      // 取消笔记编辑
+      document.getElementById('cancelNoteBtn').addEventListener('click', function() {
+        document.getElementById('noteModal').style.display = 'none';
+      });
+      
+      // 取消分类编辑
+      document.getElementById('cancelCategoryBtn').addEventListener('click', function() {
+        document.getElementById('categoryModal').style.display = 'none';
+        editingCategoryId = null;
+      });
+      
+      // 保存分类
+      document.getElementById('saveCategoryBtn').addEventListener('click', function() {
+        const name = document.getElementById('categoryName').value.trim();
+        const id = document.getElementById('categoryId').value.trim();
+        const priority = parseInt(document.getElementById('categoryPriority').value);
+        
+        if (!name || !id) {
+          alert('请填写分类名称和ID');
+          return;
+        }
+        
+        // 验证ID格式（只能是英文、数字、连字符）
+        if (!/^[a-zA-Z0-9-]+$/.test(id)) {
+          alert('分类ID只能包含英文、数字和连字符');
+          return;
+        }
+        
+        if (editingCategoryId) {
+          // 编辑现有分类
+          const index = categoriesData.findIndex(c => c.id === editingCategoryId);
+          if (index !== -1) {
+            // 检查名称是否已存在（排除当前分类）
+            if (categoriesData.some((c, i) => i !== index && c.name.toLowerCase() === name.toLowerCase())) {
+              alert('该分类名称已存在');
+              return;
+            }
+            
+            categoriesData[index].name = name;
+            categoriesData[index].priority = priority;
+            categoriesData[index].color = selectedColor;
+          }
+        } else {
+          // 创建新分类
+          // 检查ID是否已存在
+          if (categoriesData.some(c => c.id === id)) {
+            alert('该分类ID已存在');
+            return;
+          }
+          
+          // 检查名称是否已存在
+          if (categoriesData.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+            alert('该分类名称已存在');
+            return;
+          }
+          
+          categoriesData.push({
+            id,
+            name,
+            priority,
+            color: selectedColor,
+            count: 0
+          });
+        }
+        
+        updateCategoryCounts();
+        renderCategories();
+        document.getElementById('categoryModal').style.display = 'none';
+        editingCategoryId = null;
+        
+        showToast(editingCategoryId ? '分类已更新' : '分类已创建');
+      });
+      
+      // 删除分类
+      document.getElementById('deleteCategoryBtn').addEventListener('click', function() {
+        if (editingCategoryId && editingCategoryId !== 'other' && confirm('确定要删除这个分类吗？该分类下的所有笔记将被移到"其他"分类。')) {
+          // 找到默认分类"其他"
+          let otherCategory = categoriesData.find(c => c.id === 'other');
+          if (!otherCategory) {
+            otherCategory = { id: 'other', name: '其他', priority: 0, color: 'gray', count: 0 };
+            categoriesData.push(otherCategory);
+          }
+          
+          // 将该分类下的笔记移到"其他"分类
+          let movedCount = 0;
+          notesData.forEach(note => {
+            if (note.category === editingCategoryId) {
+              note.category = 'other';
+              movedCount++;
+            }
+          });
+          
+          // 从分类列表中删除
+          const index = categoriesData.findIndex(c => c.id === editingCategoryId);
+          if (index !== -1) {
+            categoriesData.splice(index, 1);
+          }
+          
+          // 如果当前选中的是被删除的分类，切换到"全部"
+          if (currentCategory === editingCategoryId) {
+            currentCategory = 'all';
+          }
+          
+          updateCategoryCounts();
+          renderCategories();
+          renderNotes();
+          document.getElementById('categoryModal').style.display = 'none';
+          editingCategoryId = null;
+          
+          showToast('分类已删除');
+        } else if (editingCategoryId === 'other') {
+          alert('"其他"分类是系统默认分类，不能删除。');
+        }
+      });
+      
+      // 笔记操作（编辑、删除、查看）
+      document.getElementById('notes-container').addEventListener('click', function(e) {
+        const editBtn = e.target.closest('.edit-note');
+        if (editBtn) {
+          const noteId = editBtn.dataset.id;
+          const note = notesData.find(n => n.id == noteId);
+          
+          if (note) {
+            editingNoteId = noteId;
+            document.getElementById('noteModalTitle').innerHTML = '<i class="fas fa-edit mr-2"></i> 编辑笔记';
+            document.getElementById('noteId').value = note.id;
+            document.getElementById('noteTitle').value = note.title;
+            document.getElementById('noteCategory').value = note.category;
+            document.getElementById('noteContent').innerHTML = note.content;
+            document.getElementById('deleteNoteBtn').classList.remove('hidden');
+            
+            // 更新字数统计
+            updateWordCount();
+            
+            document.getElementById('noteModal').style.display = 'flex';
+          }
+        }
+        
+        const deleteBtn = e.target.closest('.delete-note');
+        if (deleteBtn) {
+          const noteId = deleteBtn.dataset.id;
+          if (confirm('确定要删除这条笔记吗？')) {
+            const index = notesData.findIndex(n => n.id == noteId);
+            if (index !== -1) {
+              notesData.splice(index, 1);
+              
+              updateCategoryCounts();
+              renderCategories();
+              renderNotes();
+              showToast('笔记已删除');
+            }
+          }
+        }
+        
+        const viewBtn = e.target.closest('.view-note');
+        if (viewBtn) {
+          const noteId = viewBtn.dataset.id;
+          showNoteDetail(noteId);
+        }
+      });
+      
+      // 详情页操作
+      document.getElementById('detailBackBtn').addEventListener('click', backToNotesList);
+      
+      document.getElementById('detailEditBtn').addEventListener('click', function() {
+        if (currentDetailNoteId) {
+          const note = notesData.find(n => n.id == currentDetailNoteId);
+          
+          if (note) {
+            editingNoteId = currentDetailNoteId;
+            document.getElementById('noteModalTitle').innerHTML = '<i class="fas fa-edit mr-2"></i> 编辑笔记';
+            document.getElementById('noteId').value = note.id;
+            document.getElementById('noteTitle').value = note.title;
+            document.getElementById('noteCategory').value = note.category;
+            document.getElementById('noteContent').innerHTML = note.content;
+            document.getElementById('deleteNoteBtn').classList.remove('hidden');
+            
+            // 更新字数统计
+            updateWordCount();
+            
+            document.getElementById('noteModal').style.display = 'flex';
+          }
+        }
+      });
+      
+      document.getElementById('detailDeleteBtn').addEventListener('click', function() {
+        if (currentDetailNoteId && confirm('确定要删除这条笔记吗？')) {
+          const index = notesData.findIndex(n => n.id == currentDetailNoteId);
+          if (index !== -1) {
+            notesData.splice(index, 1);
+            
+            updateCategoryCounts();
+            renderCategories();
+            renderNotes();
+            showToast('笔记已删除');
+            
+            backToNotesList();
+          }
+        }
+      });
+      
+      // 删除笔记（模态框内）
+      document.getElementById('deleteNoteBtn').addEventListener('click', function() {
+        if (editingNoteId && confirm('确定要删除这条笔记吗？')) {
+          const index = notesData.findIndex(n => n.id == editingNoteId);
+          if (index !== -1) {
+            notesData.splice(index, 1);
+            
+            updateCategoryCounts();
+            renderCategories();
+            renderNotes();
+            document.getElementById('noteModal').style.display = 'none';
+            editingNoteId = null;
+            
+            showToast('笔记已删除');
+            
+            // 如果当前在详情页，返回列表
+            if (currentDetailNoteId == editingNoteId) {
+              backToNotesList();
+            }
+          }
+        }
+      });
+      
+      // 编辑器工具栏按钮
+      document.querySelectorAll('.toolbar-btn[data-command]').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const command = this.dataset.command;
+          const value = this.dataset.value || null;
+          
+          document.execCommand(command, false, value);
+          document.getElementById('noteContent').focus();
+          
+          // 更新字数统计
+          updateWordCount();
+          
+          // 强制刷新编辑器内容以确保样式生效
+          setTimeout(() => {
+            const content = document.getElementById('noteContent').innerHTML;
+            document.getElementById('noteContent').innerHTML = content;
+          }, 10);
+        });
+      });
+      
+      // 插入链接
+      document.getElementById('createLinkBtn').addEventListener('click', function() {
+        const url = prompt('请输入链接地址:');
+        if (url) {
+          let text = window.getSelection().toString();
+          if (!text) {
+            text = url;
+          }
+          document.execCommand('insertHTML', false, `<a href="${url}" target="_blank" class="text-blue-400 hover:text-blue-300 underline">${text}</a>`);
+        }
+        document.getElementById('noteContent').focus();
+        
+        // 更新字数统计
+        updateWordCount();
+      });
+      
+      // 图片上传
+      document.getElementById('imageUploadBtn').addEventListener('click', function() {
+        document.getElementById('imageInput').click();
+      });
+      
+      document.getElementById('imageInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = function(event) {
+            const img = document.createElement('img');
+            img.src = event.target.result;
+            img.style.maxWidth = '100%';
+            img.style.margin = '1rem 0';
+            img.style.borderRadius = '0.5rem';
+            
+            // 插入图片到编辑器
+            document.execCommand('insertHTML', false, img.outerHTML);
+            
+            // 更新字数统计
+            updateWordCount();
+          };
+          reader.readAsDataURL(file);
+        }
+        
+        // 重置文件输入
+        e.target.value = '';
+      });
+      
+      // 撤销/重做
+      document.getElementById('undoBtn').addEventListener('click', function() {
+        document.execCommand('undo');
+        document.getElementById('noteContent').focus();
+        
+        // 更新字数统计
+        updateWordCount();
+      });
+      
+      document.getElementById('redoBtn').addEventListener('click', function() {
+        document.execCommand('redo');
+        document.getElementById('noteContent').focus();
+        
+        // 更新字数统计
+        updateWordCount();
+      });
+      
+      // 编辑器内容变化时更新字数统计
+      document.getElementById('noteContent').addEventListener('input', updateWordCount);
+      
+      // 导出笔记
+      document.getElementById('exportBtn').addEventListener('click', function() {
+        const exportData = {
+          notes: notesData,
+          categories: categoriesData,
+          exportDate: new Date().toISOString()
+        };
+        
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `yume-notes-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showToast('数据已导出');
+      });
+      
+      // 点击模态框外部关闭
+      window.addEventListener('click', function(e) {
+        if (e.target.classList.contains('modal')) {
+          e.target.style.display = 'none';
+        }
+      });
+    }
+    
+    // 更新当前日期时间
+    function startDateTimeUpdate() {
+      function updateDateTime() {
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('zh-CN', { 
+          year: 'numeric', 
+          month: '2-digit', 
+          day: '2-digit',
+          weekday: 'short'
+        }).replace(/\//g, '-');
+        
+        const timeStr = now.toLocaleTimeString('zh-CN', { 
+          hour: '2-digit', 
+          minute: '2-digit', 
+          second: '2-digit' 
+        });
+        
+        document.getElementById('currentDate').textContent = dateStr;
+        document.getElementById('currentTime').textContent = timeStr;
+      }
+      
+      updateDateTime();
+      setInterval(updateDateTime, 1000);
+    }
+    
+    // 显示加载状态
+    function showLoading(message = '加载中...') {
+      isLoading = true;
+      document.getElementById('loadingIndicator').classList.remove('hidden');
+      document.getElementById('loadingIndicator').querySelector('p').textContent = message;
+    }
+    
+    // 隐藏加载状态
+    function hideLoading() {
+      isLoading = false;
+      document.getElementById('loadingIndicator').classList.add('hidden');
+    }
+    
+    // 显示提示消息
+    function showToast(message) {
+      // 创建或获取toast元素
+      let toast = document.getElementById('toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast';
+        toast.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-opacity duration-300';
+        document.body.appendChild(toast);
+      }
+      
+      toast.textContent = message;
+      toast.classList.remove('opacity-0');
+      toast.classList.add('opacity-100');
+      
+      // 3秒后隐藏
+      setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0');
+      }, 3000);
+    }
+    
+    // 计算字数
+    function countWords(text) {
+      // 移除HTML标签
+      const cleanText = text.replace(/<[^>]*>/g, '');
+      // 计算中文字符和单词
+      const chineseChars = cleanText.match(/[\u4e00-\u9fa5]/g) || [];
+      const otherWords = cleanText.replace(/[\u4e00-\u9fa5]/g, '').trim().split(/\s+/).filter(word => word.length > 0);
+      return chineseChars.length + otherWords.length;
+    }
+    
+    // 更新字数统计
+    function updateWordCount() {
+      const content = document.getElementById('noteContent').innerHTML;
+      const wordCount = countWords(content);
+      const charCount = content.replace(/<[^>]*>/g, '').length;
+      
+      document.getElementById('wordCount').textContent = `字数: ${wordCount}`;
+      document.getElementById('charCount').textContent = `字符数: ${charCount}`;
+    }
+    
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

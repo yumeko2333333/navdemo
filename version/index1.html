@@ -1,0 +1,1651 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YumeWork</title>
+  <!-- 版本：index 第一大版，链接和日期倒计时 功能 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"> -->
+  <link rel="stylesheet" href="../fontawesome/css/all.min.css">
+  <!-- <link rel="stylesheet" href="css/reminders.css"> -->
+  <!-- 拼音转换库 -->
+  <script src="https://cdn.jsdelivr.net/npm/pinyin@2.11.0/pinyin.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap');
+    
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #334155;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --accent-color: #3b82f6;
+      --accent-hover: #2563eb;
+      --category-bg: rgba(59, 130, 246, 0.2);
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .header-gradient {
+      background: linear-gradient(135deg, var(--bg-secondary), var(--bg-primary));
+    }
+    
+    .card {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--bg-tertiary);
+      border-radius: 0.75rem;
+      transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* 链接卡片样式 */
+    .link-card {
+      transition: all 0.2s ease;
+      height: 100%;
+    }
+    
+    .link-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* 分类徽章统一样式 */
+    .category-badge {
+      background-color: var(--category-bg);
+      color: #93c5fd;
+    }
+    
+    /* 模态框样式 */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .modal-content {
+      background-color: var(--bg-secondary);
+      padding: 1.5rem;
+      border-radius: 0.75rem;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      animation: modalFadeIn 0.3s ease;
+    }
+    
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* 分类编辑按钮样式 */
+    .category-edit-btn {
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    
+    .category-item:hover .category-edit-btn {
+      opacity: 1;
+    }
+    
+    /* 进度条样式 */
+    .countdown-progress {
+      width: 100%;
+      height: 6px;
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+    
+    .countdown-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #60a5fa);
+      border-radius: 3px;
+      transition: width 1s ease;
+    }
+    
+    /* 浮动按钮样式 */
+    .floating-actions {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    
+    .floating-btn {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .floating-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+    }
+    
+    .primary-action {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+    }
+    
+    .secondary-action {
+      background: linear-gradient(135deg, #10b981, #34d399);
+    }
+    
+    /* 搜索框样式 */
+    .link-search {
+      background-color: rgba(30, 41, 59, 0.7);
+      border: 1px solid #334155;
+      border-radius: 2rem;
+      padding: 0.5rem 1rem;
+      width: 100%;
+      transition: all 0.3s ease;
+    }
+    
+    .link-search:focus {
+      outline: none;
+      background-color: #1e293b;
+      border-color: #3b82f6;
+    }
+    
+    /* 时间区域样式 */
+    .time-section {
+      margin-bottom: 1rem;
+    }
+    
+    .time-label {
+      font-size: 0.875rem;
+      color: #94a3b8;
+      margin-bottom: 0.25rem;
+    }
+    
+    .work-time-progress {
+      margin-top: 0.5rem;
+    }
+    
+    .work-time-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: #94a3b8;
+      margin-bottom: 0.25rem;
+    }
+    
+    /* 控制按钮样式 */
+    .control-btn {
+      padding: 0.5rem;
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--bg-tertiary);
+      color: var(--text-secondary);
+      border-radius: 0.375rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .control-btn:hover {
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+    
+    /* 时间卡片美化 */
+    .time-card {
+      background: rgba(30, 41, 59, 0.5);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      border: 1px solid rgba(51, 65, 85, 0.5);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .time-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    }
+    
+    .time-card-title {
+      font-size: 0.875rem;
+      color: #94a3b8;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+    }
+    
+    .time-card-title i {
+      margin-right: 0.5rem;
+      font-size: 1rem;
+    }
+    
+    .time-card-value {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    
+    /* 倒计时数字样式 - 使用等宽字体确保对齐 */
+    .countdown-digit-box {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(30, 41, 59, 0.8);
+      border-radius: 0.375rem;
+      padding: 0.25rem 0.5rem;
+      margin: 0 0.125rem;
+      min-width: 2.5rem;
+      text-align: center;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      font-family: 'Roboto Mono', monospace;
+      font-weight: 500;
+    }
+    
+    .countdown-separator {
+      display: inline-block;
+      margin: 0 0.25rem;
+      color: #64748b;
+      font-family: 'Roboto Mono', monospace;
+    }
+    
+    /* 倒计时名称样式 */
+    .countdown-event-name {
+      background: rgba(59, 130, 246, 0.15);
+      color: #93c5fd;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.875rem;
+      display: inline-block;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      max-width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    /* 导航样式 */
+    .nav-item {
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    
+    .nav-item:hover {
+      color: var(--text-primary);
+      background-color: rgba(51, 65, 85, 0.5);
+    }
+    
+    .nav-item.active {
+      color: var(--text-primary);
+      background-color: var(--accent-color);
+    }
+    
+    /* 当前时间显示 */
+    .current-datetime {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+    }
+    
+    .current-datetime .date {
+      margin-right: 0.5rem;
+    }
+    
+    .current-datetime .time {
+      color: #93c5fd;
+      font-weight: 500;
+      font-family: 'Roboto Mono', monospace;
+    }
+    
+    /* ico加载失败样式 */
+    .favicon-placeholder {
+      width: 6px;
+      height: 6px;
+      background-color: #94a3b8;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    
+    /* 响应式调整 */
+    @media (max-width: 1024px) {
+      .header-content {
+        flex-wrap: wrap;
+      }
+      
+      .header-nav {
+        order: 3;
+        width: 100%;
+        margin-top: 0.75rem;
+        margin-bottom: 0.75rem;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .time-card-value {
+        font-size: 1.25rem;
+      }
+      
+      .countdown-digit-box {
+        min-width: 2rem;
+        padding: 0.25rem 0.375rem;
+      }
+      
+      .floating-btn {
+        width: 50px;
+        height: 50px;
+      }
+      
+      .current-datetime {
+        font-size: 0.75rem;
+      }
+      
+      .nav-item {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+      }
+    }
+    
+    @media (max-width: 640px) {
+      .header-controls {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+      
+      .current-datetime {
+        order: 4;
+        width: 100%;
+        margin-top: 0.5rem;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 顶部标题栏 -->
+  <header class="header-gradient border-b border-slate-700 py-4">
+    <div class="container mx-auto px-4">
+      <div class="header-content flex items-center justify-between">
+        <!-- 左侧标题 -->
+        <div class="flex items-center">
+          <i class="fas fa-moon text-blue-400 mr-3 text-xl"></i>
+          <h1 class="text-xl font-semibold text-blue-400">YumeWork</h1>
+        </div>
+        
+        <!-- 中间导航 -->
+        <nav class="header-nav mx-4">
+          <a href="#" class="nav-item active mr-1"><i class="fas fa-link mr-1"></i>链接</a>
+          <a href="notes.html" class="nav-item mr-1"><i class="fas fa-sticky-note mr-1"></i>笔记</a>
+          <!-- 技术笔记 -->
+          <a href="#" class="nav-item"><i class="fas fa-fish mr-1"></i>食谱</a>
+          <!-- <a href="../reminders/reminders.html" class="nav-item"><i class="fas fa-fish mr-1"></i>时间测试</a> -->
+          <!-- 汤谱和菜谱 -->
+          <!-- <a href="#" class="nav-item"><i class="fas fa-cog mr-1"></i> 设置</a> -->
+        </nav>
+        
+        <!-- 右侧控制区 -->
+        <div class="header-controls flex items-center gap-1">
+          <!-- 当前日期时间 -->
+          <div class="current-datetime">
+            <span class="date" id="currentDate">--</span>
+            <span class="time" id="currentTime">--:--:--</span>
+          </div>
+          
+          <!-- 控制按钮 -->
+          <button id="importBtn" class="control-btn" title="导入">
+            <i class="fas fa-file-import"></i>
+          </button>
+          <button id="exportBtn" class="control-btn" title="导出">
+            <i class="fas fa-file-export"></i>
+          </button>
+          <button id="countdownSettingBtn" class="control-btn" title="设置倒计时">
+            <i class="fas fa-cog"></i>
+          </button>
+          <button id="reminderSettingBtn" class="control-btn" title="设置提醒">
+            <i class="fas fa-bell"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主内容区 -->
+  <main class="flex-1 container mx-auto px-4 py-6">
+    <!-- 时间显示区域 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <!-- 目标日期倒计时 -->
+      <div class="time-card">
+        <div class="time-card-title">
+          <i class="fas fa-hourglass-half text-blue-400"></i> 目标倒计时
+        </div>
+        <div id="countdownDisplay" class="time-card-value text-blue-400">
+          <span class="countdown-digit-box" id="countdownDays">--</span>
+          <span class="countdown-separator">天</span>
+          <span class="countdown-digit-box" id="countdownHours">--</span>
+          <span class="countdown-separator">:</span>
+          <span class="countdown-digit-box" id="countdownMinutes">--</span>
+          <span class="countdown-separator">:</span>
+          <span class="countdown-digit-box" id="countdownSeconds">--</span>
+        </div>
+        <div id="eventTitle" class="countdown-event-name mt-2"></div>
+      </div>
+      <!-- 工作时间进度 -->
+      <div class="time-card">
+        <div class="time-card-title">
+          <i class="fas fa-briefcase text-green-400"></i> 今日工作时间
+        </div>
+        <div id="workTimeDisplay" class="time-card-value text-green-400">
+          <span class="countdown-digit-box">--</span>
+          <span class="countdown-separator">:</span>
+          <span class="countdown-digit-box">--</span>
+          <span class="countdown-separator">:</span>
+          <span class="countdown-digit-box">--</span>
+        </div>
+        <div class="work-time-progress">
+          <div class="work-time-label">
+            <span>9:00</span>
+            <span id="workTimePercent">0%</span>
+            <span>18:00</span>
+          </div>
+          <div class="countdown-progress">
+            <div id="workTimeProgressBar" class="countdown-progress-bar" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+      <!-- 目标时间 系统通知提醒 -->
+      <div class="time-card">
+        <div class="time-card-title flex justify-between items-center">
+          <div><i class="fas fa-bell text-green-400"></i> 定时提醒</div>
+          <button id="addReminderBtn" class="text-sm text-blue-400 hover:text-blue-300">
+            <i class="fas fa-plus"></i> 添加
+          </button>
+        </div>
+        <div id="remindersList" class="mt-3 space-y-2 max-h-20 overflow-y-auto">
+          <!-- 提醒列表将在这里动态生成 -->
+          <div class="text-slate-500 text-sm text-center py-4">暂无提醒，点击添加按钮创建</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <!-- 左侧边栏 -->
+      <aside class="lg:col-span-1">
+        <!-- 分类筛选 -->
+        <div class="card p-5 sticky top-4">
+          <h2 class="text-lg font-semibold text-blue-400 mb-4 flex items-center">
+            <i class="fas fa-filter mr-2"></i> 分类筛选
+          </h2>
+          
+          <ul class="space-y-2" id="category-list">
+            <li class="category-item py-2 px-3 rounded-lg cursor-pointer bg-blue-600 text-white flex justify-between items-center" data-category="all">
+              <span>全部链接</span>
+              <span class="bg-blue-500 text-xs px-2 py-1 rounded-full" id="all-count">0</span>
+            </li>
+            <!-- 分类将通过JavaScript动态生成 -->
+          </ul>
+        </div>
+      </aside>
+      
+      <!-- 右侧内容区 -->
+      <section class="lg:col-span-3">
+        <!-- 链接搜索框 -->
+        <div class="mb-5">
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-search text-slate-400"></i>
+            </div>
+            <input type="text" id="searchInput" class="link-search pl-10 pr-4 py-2 text-sm w-full" placeholder="搜索链接...">
+          </div>
+        </div>
+        
+        <!-- 链接网格 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5" id="links-container">
+          <!-- 链接将通过JavaScript动态生成 -->
+        </div>
+        
+        <!-- 加载更多 -->
+        <div class="mt-8 text-center" id="loadMoreContainer">
+          <button id="loadMoreBtn" class="bg-slate-700 hover:bg-slate-600 text-white px-6 py-2.5 rounded-lg text-sm">
+            <i class="fas fa-arrow-down mr-2"></i> 加载更多
+          </button>
+        </div>
+        
+        <!-- 无结果提示 -->
+        <div id="noResults" class="hidden text-center py-10">
+          <i class="fas fa-search text-slate-400 text-4xl mb-4"></i>
+          <p class="text-slate-400">没有找到匹配的链接</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- 页脚 -->
+  <footer class="header-gradient border-t border-slate-700 py-4 mt-auto">
+    <div class="container mx-auto px-4">
+      <div class="flex flex-col md:flex-row justify-between items-center">
+        <div class="flex space-x-5 mb-3 md:mb-0">
+          <a href="#" class="text-blue-400 hover:text-blue-300 text-sm"><i class="fas fa-question-circle mr-1.5"></i> 帮助</a>
+          <a href="#" class="text-blue-400 hover:text-blue-300 text-sm"><i class="fas fa-shield-alt mr-1.5"></i> 隐私</a>
+          <a href="#" class="text-blue-400 hover:text-blue-300 text-sm"><i class="fas fa-file-contract mr-1.5"></i> 条款</a>
+        </div>
+        <div class="text-slate-400 text-sm">
+          © 2025 YumeWork | 版权所有
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- 浮动操作按钮 -->
+  <div class="floating-actions">
+    <div class="floating-btn secondary-action" id="addCategoryFloatBtn" title="添加分类">
+      <i class="fas fa-tag text-lg"></i>
+    </div>
+    <div class="floating-btn primary-action" id="addLinkFloatBtn" title="添加链接">
+      <i class="fas fa-plus text-xl"></i>
+    </div>
+  </div>
+
+  <!-- 倒计时设置模态框 -->
+  <div id="countdownModal" class="modal">
+    <div class="modal-content">
+      <h2 class="text-lg font-semibold text-blue-400 mb-4 flex items-center">
+        <i class="fas fa-hourglass-half mr-2"></i> 设置目标倒计时
+      </h2>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-slate-400 text-sm mb-2">事件名称</label>
+          <input type="text" id="eventName" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-sm" placeholder="例如：项目截止">
+        </div>
+        
+        <div>
+          <label class="block text-slate-400 text-sm mb-2">目标时间</label>
+          <input type="datetime-local" id="targetDate" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-sm">
+        </div>
+        
+        <div class="flex justify-end space-x-3 pt-2">
+          <button id="cancelCountdownBtn" class="px-4 py-2 text-slate-300 hover:text-white text-sm">
+            取消
+          </button>
+          <button id="saveCountdownBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">
+            保存设置
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 提醒设置模态框 -->
+  <div id="reminderModal" class="modal">
+    <div class="modal-content">
+      <h2 class="text-lg font-semibold text-blue-400 mb-4 flex items-center">
+        <i class="fas fa-bell mr-2"></i> 设置定时提醒
+      </h2>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-slate-400 text-sm mb-2">提醒标题</label>
+          <input type="text" id="reminderTitle" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-sm" placeholder="例如：每日站会">
+        </div>
+        
+        <div>
+          <label class="block text-slate-400 text-sm mb-2">提醒时间</label>
+          <input type="time" id="reminderTime" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-sm">
+        </div>
+        
+        <div>
+          <label class="block text-slate-400 text-sm mb-2">重复频率</label>
+          <select id="reminderRepeat" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-sm">
+            <option value="none">不重复</option>
+            <option value="daily">每天</option>
+            <option value="weekly">每周</option>
+            <option value="monthly">每月</option>
+          </select>
+        </div>
+        
+        <div id="weeklyOptions" class="hidden">
+          <label class="block text-slate-400 text-sm mb-2">重复星期</label>
+          <div class="flex flex-wrap gap-2">
+            <label class="flex items-center">
+              <input type="checkbox" value="0" class="mr-1"> 周日
+            </label>
+            <label class="flex items-center">
+              <input type="checkbox" value="1" class="mr-1"> 周一
+            </label>
+            <label class="flex items-center">
+              <input type="checkbox" value="2" class="mr-1"> 周二
+            </label>
+            <label class="flex items-center">
+              <input type="checkbox" value="3" class="mr-1"> 周三
+            </label>
+            <label class="flex items-center">
+              <input type="checkbox" value="4" class="mr-1"> 周四
+            </label>
+            <label class="flex items-center">
+              <input type="checkbox" value="5" class="mr-1"> 周五
+            </label>
+            <label class="flex items-center">
+              <input type="checkbox" value="6" class="mr-1"> 周六
+            </label>
+          </div>
+        </div>
+        
+        <div class="flex justify-end space-x-3 pt-2">
+          <button id="cancelReminderBtn" class="px-4 py-2 text-slate-300 hover:text-white text-sm">
+            取消
+          </button>
+          <button id="saveReminderBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">
+            保存提醒
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 分类编辑模态框 -->
+  <div id="categoryModal" class="modal">
+    <div class="modal-content">
+      <h2 class="text-lg font-semibold text-blue-400 mb-4 flex items-center">
+        <i class="fas fa-edit mr-2"></i> 编辑分类
+      </h2>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-slate-400 text-sm mb-2">分类名称</label>
+          <input type="text" id="categoryName" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-sm" placeholder="输入分类名称">
+        </div>
+        
+        <div class="flex justify-end space-x-3 pt-2">
+          <button id="deleteCategoryBtn" class="px-4 py-2 text-red-300 hover:text-red-100 text-sm">
+            <i class="fas fa-trash mr-1"></i> 删除
+          </button>
+          <button id="cancelCategoryBtn" class="px-4 py-2 text-slate-300 hover:text-white text-sm">
+            取消
+          </button>
+          <button id="saveCategoryBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">
+            保存
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 添加/编辑链接模态框 -->
+  <div id="linkModal" class="modal">
+    <div class="modal-content">
+      <h2 id="linkModalTitle" class="text-lg font-semibold text-blue-400 mb-4 flex items-center">
+        <i class="fas fa-plus-circle mr-2"></i> 添加新链接
+      </h2>
+      
+      <div class="space-y-4">
+        <input type="hidden" id="linkId">
+        
+        <div>
+          <label class="block text-slate-400 text-sm mb-2">网站URL</label>
+          <input type="url" id="linkUrl" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-sm" placeholder="https://example.com">
+        </div>
+        
+        <div>
+          <label class="block text-slate-400 text-sm mb-2">标题</label>
+          <input type="text" id="linkTitle" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-sm" placeholder="网站名称">
+        </div>
+        
+        <div>
+          <label class="block text-slate-400 text-sm mb-2">分类</label>
+          <select id="linkCategory" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-sm">
+            <!-- 分类将通过JavaScript动态生成 -->
+          </select>
+        </div>
+        
+        <div>
+          <label class="block text-slate-400 text-sm mb-2">描述 (可选)</label>
+          <textarea id="linkDescription" rows="2" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-sm" placeholder="简要描述..."></textarea>
+        </div>
+        
+        <div class="flex justify-end space-x-3 pt-2">
+          <button id="deleteLinkBtn" class="hidden px-4 py-2 text-red-300 hover:text-red-100 text-sm">
+            <i class="fas fa-trash mr-1"></i> 删除
+          </button>
+          <button id="cancelLinkBtn" class="px-4 py-2 text-slate-300 hover:text-white text-sm">
+            取消
+          </button>
+          <button id="saveLinkBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">
+            <i class="fas fa-save mr-1"></i> 保存
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 数据存储
+    let linksData = [];
+    let categoriesData = [];
+    let countdownSettings = {
+      eventName: '',
+      targetDate: null
+    };
+    let filteredLinks = [];
+    let currentCategory = 'all';
+    let currentSearchTerm = '';
+    let displayCount = 6;
+    let countdownEndTime = null;
+    let editingCategoryId = null;
+    let editingLinkId = null;
+    
+    // 初始化函数
+    async function init() {
+      await loadData(); // 先加载 JSON 数据
+      loadCountdownSettings(); // 然后检查 localStorage（作为后备）
+      renderCategories();
+      renderLinks();
+      initEventListeners();
+      startTimers();
+    }
+    
+    // 加载数据
+    async function loadData() {
+      try {
+        // 从外部JSON文件加载数据
+        const response = await fetch('linksdata.json');
+        const data = await response.json();
+        
+        linksData = data.links || [];
+        categoriesData = data.categories || [
+          { id: 'work', name: '工作', count: 0 },
+          { id: 'study', name: '学习', count: 0 },
+          { id: 'personal', name: '个人', count: 0 },
+          { id: 'entertainment', name: '娱乐', count: 0 },
+          { id: 'other', name: '其他', count: 0 }
+        ];
+        
+        // 如果JSON中有倒计时设置，使用它
+        if (data.countdownSettings) {
+          countdownSettings = data.countdownSettings;
+
+          // 立即保存到 localStorage，确保下次加载时也能使用
+          saveCountdownSettings();
+          // 直接启动倒计时，不需要等待 loadCountdownSettings()
+          const targetTime = new Date(countdownSettings.targetDate).getTime();
+          const now = new Date().getTime();
+          
+          if (targetTime > now) {
+            document.getElementById('eventTitle').textContent = countdownSettings.eventName || '目标事件';
+            countdownEndTime = targetTime;
+            startCountdown(targetTime);
+          }
+        }
+        
+        // 计算每个分类的链接数量
+        updateCategoryCounts();
+        
+      } catch (error) {
+        console.error('加载数据失败:', error);
+        // 使用默认数据
+        linksData = [
+          {
+            id: 1,
+            title: "GitHub",
+            url: "https://github.com",
+            category: "work",
+            description: "代码托管平台，全球最大的开源社区",
+            favicon: "https://www.google.com/s2/favicons?domain=github.com&sz=32",
+            addedDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+          },
+          {
+            id: 2,
+            title: "MDN Web Docs",
+            url: "https://developer.mozilla.org",
+            category: "study",
+            description: "Web技术文档，前端开发者的宝典",
+            favicon: "https://www.google.com/s2/favicons?domain=developer.mozilla.org&sz=32",
+            addedDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+          },
+          {
+            id: 3,
+            title: "YouTube",
+            url: "https://youtube.com",
+            category: "entertainment",
+            description: "全球最大的视频分享平台",
+            favicon: "https://www.google.com/s2/favicons?domain=youtube.com&sz=32",
+            addedDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
+          }
+        ];
+        
+        categoriesData = [
+          { id: 'work', name: '工作', count: 1 },
+          { id: 'study', name: '学习', count: 1 },
+          { id: 'personal', name: '个人', count: 0 },
+          { id: 'entertainment', name: '娱乐', count: 1 },
+          { id: 'other', name: '其他', count: 0 }
+        ];
+      }
+    }
+    
+    // 保存倒计时设置到本地存储
+    function saveCountdownSettings() {
+      localStorage.setItem('countdownSettings', JSON.stringify(countdownSettings));
+    }
+    
+    // 从本地存储加载倒计时设置
+    function loadCountdownSettings() {
+      const savedSettings = localStorage.getItem('countdownSettings');
+      if (savedSettings) {
+        try {
+          countdownSettings = JSON.parse(savedSettings);
+          
+          // 只有当 JSON 中没有设置或者用户没有手动设置时，才使用 localStorage 的设置
+          if (!countdownSettings.targetDate) {
+            countdownSettings = parsedSettings;
+
+            // 如果有有效的目标日期，启动倒计时
+            if (countdownSettings.targetDate) {
+              const targetTime = new Date(countdownSettings.targetDate).getTime();
+              const now = new Date().getTime();
+              
+              if (targetTime > now) {
+                document.getElementById('eventTitle').textContent = countdownSettings.eventName || '目标事件';
+                countdownEndTime = targetTime;
+                startCountdown(targetTime);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('加载倒计时设置失败:', error);
+        }
+      }
+    }
+    
+    // 获取网站ICO的函数，带备选方案
+    function getFaviconUrl(url) {
+      try {
+        const parsedUrl = new URL(url);
+        const domain = parsedUrl.hostname;
+        
+        // 主要使用Google的favicon服务
+        const googleFavicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+        
+        // 备选方案 - 使用 DuckDuckGo 的服务
+        const ddgFavicon = `https://icons.duckduckgo.com/ip3/${domain}.ico`;
+        
+        // 返回主要方案，但在前端会有失败处理
+        return { primary: googleFavicon, fallback: ddgFavicon };
+      } catch (error) {
+        console.error('解析URL失败:', error);
+        return { 
+          primary: 'https://via.placeholder.com/16', 
+          fallback: 'https://via.placeholder.com/16' 
+        };
+      }
+    }
+    
+    // 更新分类计数
+    function updateCategoryCounts() {
+      categoriesData.forEach(category => {
+        category.count = linksData.filter(link => link.category === category.id).length;
+      });
+      
+      // 更新全部计数
+      document.getElementById('all-count').textContent = linksData.length;
+    }
+    
+    // 渲染分类
+    function renderCategories() {
+      const categoryList = document.getElementById('category-list');
+      const categorySelect = document.getElementById('linkCategory');
+      
+      // 清空现有内容（保留"全部"选项）
+      const allItem = categoryList.querySelector('[data-category="all"]');
+      categoryList.innerHTML = '';
+      categoryList.appendChild(allItem);
+      categorySelect.innerHTML = '';
+      
+      // 添加其他分类
+      categoriesData.forEach(category => {
+        // 添加到筛选列表
+        const li = document.createElement('li');
+        li.className = `category-item py-2 px-3 rounded-lg cursor-pointer hover:bg-slate-700 flex justify-between items-center ${currentCategory === category.id ? 'bg-blue-600 text-white' : ''}`;
+        li.dataset.category = category.id;
+        li.innerHTML = `
+          <span>${category.name}</span>
+          <div class="flex items-center">
+            <span class="bg-slate-600 text-xs px-2 py-1 rounded-full mr-2">${category.count}</span>
+            <button class="category-edit-btn text-slate-400 hover:text-blue-400" data-id="${category.id}">
+              <i class="fas fa-edit"></i>
+            </button>
+          </div>
+        `;
+        categoryList.appendChild(li);
+        
+        // 添加到选择框
+        const option = document.createElement('option');
+        option.value = category.id;
+        option.textContent = category.name;
+        categorySelect.appendChild(option);
+      });
+    }
+    
+    // 渲染链接
+    function renderLinks() {
+      const linksContainer = document.getElementById('links-container');
+      const noResults = document.getElementById('noResults');
+      
+      // 过滤链接
+      filteredLinks = filterLinks();
+      
+      // 清空现有内容
+      linksContainer.innerHTML = '';
+      
+      // 显示/隐藏无结果提示
+      if (filteredLinks.length === 0) {
+        noResults.classList.remove('hidden');
+      } else {
+        noResults.classList.add('hidden');
+      }
+      
+      // 显示链接
+      const linksToShow = filteredLinks.slice(0, displayCount);
+      
+      linksToShow.forEach(link => {
+        const category = categoriesData.find(c => c.id === link.category) || { name: '其他' };
+        const addedDate = new Date(link.addedDate);
+        const daysAgo = Math.floor((Date.now() - addedDate) / (1000 * 60 * 60 * 24));
+        const timeText = daysAgo === 0 ? '今天添加' : `${daysAgo}天前添加`;
+        
+        // 获取favicon信息
+        const favicons = link.favicon ? 
+          { primary: link.favicon, fallback: getFaviconUrl(link.url).fallback } : 
+          getFaviconUrl(link.url);
+        
+        const linkCard = document.createElement('div');
+        linkCard.className = 'card overflow-hidden link-card flex flex-col';
+        linkCard.innerHTML = `
+          <div class="p-5 flex-1 flex flex-col">
+            <div class="flex justify-between items-start mb-4">
+              <div class="flex items-start">
+                <div class="favicon-container mr-3 mt-1">
+                  <img src="${favicons.primary}" class="w-6 h-6 favicon" alt="${link.title}的图标" 
+                       onError="this.onerror=null;this.src='${favicons.fallback}';this.onerror=function(){this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iIzY0NzQ4YiIgZD0iTTIyIDEwVjE2YzAgMi4yMS0xLjc5IDQtNCA0hHN2LTRoMnYtNmgyem0tMTggMEg2QzQuODkgMCA0IDAuODkgNCAyVjIyYzAgMS4xMS44OSAyIDIgMmgxNDIgMnYtMkg2VjJjMCAuMTEtLjA5LS4yMi0uMjUtLjI1aC0yYy0uMTYgMC0uMjUgLjE0LS4yNS4zMlYxOWMwIC4xOC4xNy4zMi4zNS4zMmgyYzEuMTEgMCAyLS44OSAyLTJWNmgydjEwaDJWMkg2djE4aDE0djJ6Ii8+PC9zdmc+'}">
+                </div>
+                <h3 class="font-medium text-slate-100 truncate">${link.title}</h3>
+              </div>
+              <span class="category-badge px-2.5 py-0.5">${category.name}</span>
+            </div>
+            <a href="${link.url}" target="_blank" class="text-blue-400 hover:text-blue-300 text-sm block mb-3 truncate">${link.url}</a>
+            <p class="text-slate-400 text-sm mb-4 line-clamp-2 flex-1">${link.description}</p>
+            <div class="flex justify-between items-center">
+              <span class="text-xs text-slate-500">${timeText}</span>
+              <div class="flex space-x-3">
+                <button class="text-blue-400 hover:text-blue-300 edit-link" data-id="${link.id}">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="text-red-400 hover:text-red-100 delete-link" data-id="${link.id}">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        linksContainer.appendChild(linkCard);
+      });
+      
+      // 显示/隐藏加载更多按钮
+      const loadMoreContainer = document.getElementById('loadMoreContainer');
+      if (filteredLinks.length > displayCount) {
+        loadMoreContainer.classList.remove('hidden');
+      } else {
+        loadMoreContainer.classList.add('hidden');
+      }
+    }
+    
+    // 过滤链接
+    function filterLinks() {
+      let filtered = linksData;
+      
+      // 按分类过滤
+      if (currentCategory !== 'all') {
+        filtered = filtered.filter(link => link.category === currentCategory);
+      }
+      
+      // 按搜索词过滤
+      if (currentSearchTerm) {
+        const searchTerm = currentSearchTerm.toLowerCase();
+        filtered = filtered.filter(link => 
+          link.title.toLowerCase().includes(searchTerm) ||
+          link.url.toLowerCase().includes(searchTerm) ||
+          link.description.toLowerCase().includes(searchTerm)
+        );
+      }
+      
+      return filtered;
+    }
+    
+    // 初始化事件监听器
+    function initEventListeners() {
+      // 分类筛选
+      document.getElementById('category-list').addEventListener('click', function(e) {
+        const categoryItem = e.target.closest('.category-item');
+        if (categoryItem) {
+          // 防止点击编辑按钮时触发分类切换
+          if (!e.target.closest('.category-edit-btn')) {
+            currentCategory = categoryItem.dataset.category;
+            
+            // 更新选中状态
+            document.querySelectorAll('.category-item').forEach(item => {
+              item.classList.remove('bg-blue-600', 'text-white');
+              item.classList.add('hover:bg-slate-700');
+            });
+            categoryItem.classList.add('bg-blue-600', 'text-white');
+            categoryItem.classList.remove('hover:bg-slate-700');
+            
+            // 重新渲染链接
+            displayCount = 6;
+            renderLinks();
+          }
+        }
+        
+        // 分类编辑
+        const editBtn = e.target.closest('.category-edit-btn');
+        if (editBtn) {
+          e.stopPropagation();
+          editingCategoryId = editBtn.dataset.id;
+          const category = categoriesData.find(c => c.id === editingCategoryId);
+          
+          if (category) {
+            document.getElementById('categoryName').value = category.name;
+            document.getElementById('categoryModal').style.display = 'flex';
+          }
+        }
+      });
+      
+      // 搜索功能
+      document.getElementById('searchInput').addEventListener('input', function(e) {
+        currentSearchTerm = e.target.value.trim();
+        displayCount = 6;
+        renderLinks();
+      });
+      
+      // 加载更多
+      document.getElementById('loadMoreBtn').addEventListener('click', function() {
+        displayCount += 6;
+        renderLinks();
+      });
+      
+      // 添加链接
+      document.getElementById('addLinkFloatBtn').addEventListener('click', function() {
+        // 重置表单
+        document.getElementById('linkModalTitle').innerHTML = '<i class="fas fa-plus-circle mr-2"></i> 添加新链接';
+        document.getElementById('linkId').value = '';
+        document.getElementById('linkUrl').value = '';
+        document.getElementById('linkTitle').value = '';
+        document.getElementById('linkDescription').value = '';
+        document.getElementById('deleteLinkBtn').classList.add('hidden');
+        editingLinkId = null;
+        
+        // 显示模态框
+        document.getElementById('linkModal').style.display = 'flex';
+      });
+      
+      // 添加分类
+      document.getElementById('addCategoryFloatBtn').addEventListener('click', function() {
+        const newName = prompt('请输入新分类名称');
+        if (newName && newName.trim()) {
+          // const newId = newName.toLowerCase().replace(/\s+/g, '-');
+          // 生成英文ID：使用简单的转换规则
+          const newId = generateEnglishId(newName);
+
+          // 检查分类是否已存在
+          if (categoriesData.some(cat => cat.id === newId || cat.name.toLowerCase() === newName.toLowerCase())) {
+            alert('该分类已存在');
+            return;
+          }
+          
+          categoriesData.push({
+            id: newId,
+            name: newName,
+            count: 0
+          });
+          renderCategories();
+          alert(`分类 "${newName}" 已创建`);
+        }
+      });
+
+      function generateEnglishId(chineseName) {
+        if (typeof pinyin !== 'undefined') {
+          try {
+            return pinyin(chineseName, {
+              style: pinyin.STYLE_NORMAL, // 普通风格，不带声调
+              separator: ''
+            }).join('').toLowerCase();
+          } catch (e) {
+            console.error('拼音转换失败:', e);
+          }
+        }
+        
+        // 回退方案：使用简单的转换规则（这里我们只保留字母数字和连字符将非字母数字的字符转换为连字符）
+        // 注意：这个回退方案不会将中文转为拼音，所以可能还是会留下中文但至少去除了特殊字符
+        return chineseName
+          .toLowerCase()
+          .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-') // 保留中文、字数字，其他转为连字符
+          .replace(/^\-+|\-+$/g, '') // 去除首尾连字符
+          .substring(0, 20);
+      }
+
+      // 使用 Intl API 进行简单转换（试了，没用）
+      // function toPinyinWithIntl(text) {
+      //   return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      // }
+
+      // 保存链接
+      document.getElementById('saveLinkBtn').addEventListener('click', function() {
+        const url = document.getElementById('linkUrl').value.trim();
+        const title = document.getElementById('linkTitle').value.trim();
+        const category = document.getElementById('linkCategory').value;
+        const description = document.getElementById('linkDescription').value.trim();
+        const linkId = document.getElementById('linkId').value;
+        
+        if (!url || !title) {
+          alert('请填写URL和标题');
+          return;
+        }
+        
+        try {
+          // 验证URL格式
+          new URL(url);
+        } catch (e) {
+          alert('请输入有效的URL，例如：https://example.com');
+          return;
+        }
+        
+        // 获取favicon
+        const favicons = getFaviconUrl(url);
+        
+        if (linkId) {
+          // 编辑现有链接
+          const index = linksData.findIndex(link => link.id == linkId);
+          if (index !== -1) {
+            linksData[index] = {
+              ...linksData[index],
+              title,
+              url,
+              category,
+              description,
+              favicon: favicons.primary
+            };
+          }
+        } else {
+          // 创建新链接
+          const newLink = {
+            id: Date.now(),
+            title,
+            url,
+            category,
+            description,
+            favicon: favicons.primary,
+            addedDate: new Date().toISOString()
+          };
+          
+          linksData.unshift(newLink);
+        }
+        
+        updateCategoryCounts();
+        renderCategories();
+        renderLinks();
+        
+        // 关闭模态框
+        document.getElementById('linkModal').style.display = 'none';
+        
+        alert(linkId ? '链接更新成功！' : '链接添加成功！');
+      });
+      
+      // 关闭链接模态框
+      document.getElementById('cancelLinkBtn').addEventListener('click', function() {
+        document.getElementById('linkModal').style.display = 'none';
+      });
+      
+      // 删除链接
+      document.getElementById('deleteLinkBtn').addEventListener('click', function() {
+        if (editingLinkId && confirm('确定要删除这个链接吗？')) {
+          const index = linksData.findIndex(link => link.id == editingLinkId);
+          if (index !== -1) {
+            linksData.splice(index, 1);
+            
+            updateCategoryCounts();
+            renderCategories();
+            renderLinks();
+            
+            // 关闭模态框
+            document.getElementById('linkModal').style.display = 'none';
+            
+            alert('链接已删除');
+          }
+        }
+      });
+      
+      // 链接编辑和删除事件委托
+      document.getElementById('links-container').addEventListener('click', function(e) {
+        // 编辑链接
+        const editBtn = e.target.closest('.edit-link');
+        if (editBtn) {
+          const linkId = editBtn.dataset.id;
+          editingLinkId = linkId;
+          const link = linksData.find(l => l.id == linkId);
+          
+          if (link) {
+            document.getElementById('linkModalTitle').innerHTML = '<i class="fas fa-edit mr-2"></i> 编辑链接';
+            document.getElementById('linkId').value = link.id;
+            document.getElementById('linkUrl').value = link.url;
+            document.getElementById('linkTitle').value = link.title;
+            document.getElementById('linkCategory').value = link.category;
+            document.getElementById('linkDescription').value = link.description;
+            document.getElementById('deleteLinkBtn').classList.remove('hidden');
+            
+            document.getElementById('linkModal').style.display = 'flex';
+          }
+        }
+        
+        // 删除链接
+        const deleteBtn = e.target.closest('.delete-link');
+        if (deleteBtn) {
+          const linkId = deleteBtn.dataset.id;
+          if (confirm('确定要删除这个链接吗？')) {
+            const index = linksData.findIndex(link => link.id == linkId);
+            if (index !== -1) {
+              linksData.splice(index, 1);
+              
+              updateCategoryCounts();
+              renderCategories();
+              renderLinks();
+              
+              alert('链接已删除');
+            }
+          }
+        }
+      });
+      
+      // 倒计时设置
+      document.getElementById('countdownSettingBtn').addEventListener('click', function() {
+        // 加载当前设置到表单
+        if (countdownSettings.eventName) {
+          document.getElementById('eventName').value = countdownSettings.eventName;
+        }
+        if (countdownSettings.targetDate) {
+          // 转换为本地时间的ISO格式（YYYY-MM-DDThh:mm）
+          const date = new Date(countdownSettings.targetDate);
+          const localISO = date.toISOString().slice(0, 16);
+          document.getElementById('targetDate').value = localISO;
+        }
+        
+        document.getElementById('countdownModal').style.display = 'flex';
+      });
+      
+      // 保存倒计时设置
+      document.getElementById('saveCountdownBtn').addEventListener('click', function() {
+        const eventName = document.getElementById('eventName').value.trim();
+        const targetDate = document.getElementById('targetDate').value;
+        
+        if (!eventName || !targetDate) {
+          alert('请填写事件名称和目标时间');
+          return;
+        }
+        
+        const targetTime = new Date(targetDate).getTime();
+        const now = new Date().getTime();
+        
+        if (targetTime <= now) {
+          alert('目标时间必须是将来的时间');
+          return;
+        }
+        
+        // 保存设置
+        countdownSettings = {
+          eventName,
+          targetDate
+        };
+        
+        // 保存到本地存储
+        saveCountdownSettings();
+        
+        // 关闭模态框
+        document.getElementById('countdownModal').style.display = 'none';
+        
+        // 更新倒计时显示
+        document.getElementById('eventTitle').textContent = eventName;
+        
+        // 保存结束时间
+        countdownEndTime = targetTime;
+        
+        // 清除现有的倒计时
+        if (window.countdownInterval) {
+          clearInterval(window.countdownInterval);
+        }
+        
+        // 开始倒计时
+        startCountdown(targetTime);
+      });
+      
+      // 关闭倒计时模态框
+      document.getElementById('cancelCountdownBtn').addEventListener('click', function() {
+        document.getElementById('countdownModal').style.display = 'none';
+      });
+      
+      // 保存分类编辑
+      document.getElementById('saveCategoryBtn').addEventListener('click', function() {
+        const categoryName = document.getElementById('categoryName').value.trim();
+        
+        if (!categoryName) {
+          alert('请输入分类名称');
+          return;
+        }
+        
+        if (editingCategoryId) {
+          const index = categoriesData.findIndex(c => c.id === editingCategoryId);
+          if (index !== -1) {
+            // 检查新名称是否与其他分类冲突
+            const nameExists = categoriesData.some(
+              (c, i) => i !== index && c.name.toLowerCase() === categoryName.toLowerCase()
+            );
+            
+            if (nameExists) {
+              alert('该分类名称已存在');
+              return;
+            }
+            
+            categoriesData[index].name = categoryName;
+            renderCategories();
+            document.getElementById('categoryModal').style.display = 'none';
+            alert('分类已更新');
+          }
+        }
+      });
+      
+      // 取消分类编辑
+      document.getElementById('cancelCategoryBtn').addEventListener('click', function() {
+        document.getElementById('categoryModal').style.display = 'none';
+      });
+      
+      // 删除分类
+      document.getElementById('deleteCategoryBtn').addEventListener('click', function() {
+        if (editingCategoryId) {
+          const category = categoriesData.find(c => c.id === editingCategoryId);
+          
+          if (category && category.count > 0) {
+            alert('无法删除包含链接的分类，请先将该分类下的链接移动到其他分类');
+            return;
+          }
+          
+          if (confirm(`确定要删除分类"${category.name}"吗？`)) {
+            const index = categoriesData.findIndex(c => c.id === editingCategoryId);
+            if (index !== -1) {
+              categoriesData.splice(index, 1);
+              
+              // 如果当前选中了被删除的分类，切换到全部
+              if (currentCategory === editingCategoryId) {
+                currentCategory = 'all';
+              }
+              
+              renderCategories();
+              renderLinks();
+              document.getElementById('categoryModal').style.display = 'none';
+              alert('分类已删除');
+            }
+          }
+        }
+      });
+      
+      // 导入导出功能
+      document.getElementById('importBtn').addEventListener('click', function() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        
+        input.onchange = e => {
+          const file = e.target.files[0];
+          if (!file) return;
+          
+          const reader = new FileReader();
+          reader.onload = event => {
+            try {
+              const data = JSON.parse(event.target.result);
+              if (data.links && data.categories) {
+                linksData = data.links;
+                categoriesData = data.categories;
+                
+                // 如果导入的数据包含倒计时设置，使用它
+                if (data.countdownSettings) {
+                  countdownSettings = data.countdownSettings;
+                  saveCountdownSettings();
+                  
+                  // 重启倒计时
+                  if (countdownSettings.targetDate) {
+                    const targetTime = new Date(countdownSettings.targetDate).getTime();
+                    const now = new Date().getTime();
+                    
+                    if (targetTime > now) {
+                      document.getElementById('eventTitle').textContent = countdownSettings.eventName || '目标事件';
+                      countdownEndTime = targetTime;
+                      
+                      if (window.countdownInterval) {
+                        clearInterval(window.countdownInterval);
+                      }
+                      startCountdown(targetTime);
+                    }
+                  }
+                }
+                
+                updateCategoryCounts();
+                renderCategories();
+                renderLinks();
+                alert('导入成功');
+              } else {
+                alert('导入失败：文件格式不正确');
+              }
+            } catch (error) {
+              console.error('导入失败', error);
+              alert('导入失败：无效的JSON文件');
+            }
+          };
+          reader.readAsText(file);
+        };
+        
+        input.click();
+      });
+      
+      document.getElementById('exportBtn').addEventListener('click', function() {
+        const data = {
+          links: linksData,
+          categories: categoriesData,
+          countdownSettings: countdownSettings  // 包含倒计时设置
+        };
+        
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `link-collection-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+      
+      // 导航项点击事件
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+          /*e.preventDefault();
+          
+           // 移除所有导航项的active类
+          document.querySelectorAll('.nav-item').forEach(nav => {
+            nav.classList.remove('active');
+          });
+          
+          // 为当前点击的导航项添加active类
+          this.classList.add('active');*/
+          
+          // 如果点击的是食谱导航，显示提示
+          if (this.textContent.includes('食谱')) {
+            alert('食谱即将上线，敬请期待！');
+          }
+        });
+      }); 
+    }
+    
+    // 时间相关功能
+    let countdownInterval = null;
+    let workTimeInterval = null;
+    
+    function startTimers() {
+      // 更新当前日期和时间
+      updateCurrentDateTime();
+      
+      // 开始工作时间计时器
+      startWorkTimeTimer();
+      
+      // 每秒更新一次日期和时间
+      setInterval(() => {
+        updateCurrentDateTime();
+      }, 1000);
+    }
+    
+    function updateCurrentDateTime() {
+      const now = new Date();
+      
+      // 日期格式：星期 月 日
+      const dateOptions = { weekday: 'short', year:'numeric',month: 'short', day: 'numeric' };
+      document.getElementById('currentDate').textContent = now.toLocaleDateString('zh-CN', dateOptions);
+      
+      // 时间格式：时:分:秒
+      const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+      document.getElementById('currentTime').textContent = now.toLocaleTimeString('zh-CN', timeOptions);
+    }
+    
+    function startWorkTimeTimer() {
+      function updateWorkTime() {
+        const now = new Date();
+        const hours = now.getHours();
+        const minutes = now.getMinutes();
+        const seconds = now.getSeconds();
+        
+        // 计算工作时间进度 (9:00-18:00)
+        const workStart = 9; // 9:00
+        const workEnd = 18;  // 18:00
+        const totalWorkMinutes = (workEnd - workStart) * 60;
+        
+        if (hours >= workStart && hours < workEnd) {
+          const currentMinutes = (hours - workStart) * 60 + minutes;
+          const percent = (currentMinutes / totalWorkMinutes) * 100;
+          const remainingMinutes = totalWorkMinutes - currentMinutes;
+          
+          const remainingHours = Math.floor(remainingMinutes / 60);
+          const remainingMins = Math.floor(remainingMinutes % 60);
+          const remainingSecs = 60 - seconds;
+          
+          // 更新工作时间显示，使用带框的数字样式
+          document.getElementById('workTimeDisplay').innerHTML = `
+            <span class="countdown-digit-box">${remainingHours.toString().padStart(2, '0')}</span>
+            <span class="countdown-separator">:</span>
+            <span class="countdown-digit-box">${remainingMins.toString().padStart(2, '0')}</span>
+            <span class="countdown-separator">:</span>
+            <span class="countdown-digit-box">${remainingSecs.toString().padStart(2, '0')}</span>
+          `;
+          
+          document.getElementById('workTimeProgressBar').style.width = `${percent}%`;
+          document.getElementById('workTimePercent').textContent = `${Math.round(percent)}%`;
+        } else if (hours < workStart) {
+          // 工作还未开始
+          document.getElementById('workTimeDisplay').innerHTML = `
+            <span class="countdown-digit-box">尚未</span>
+            <span class="countdown-digit-box">开始</span>
+          `;
+          document.getElementById('workTimeProgressBar').style.width = '0%';
+          document.getElementById('workTimePercent').textContent = '0%';
+        } else {
+          // 工作已结束
+          document.getElementById('workTimeDisplay').innerHTML = `
+            <span class="countdown-digit-box">已</span>
+            <span class="countdown-digit-box">结束</span>
+          `;
+          document.getElementById('workTimeProgressBar').style.width = '100%';
+          document.getElementById('workTimePercent').textContent = '100%';
+        }
+      }
+      
+      // 立即更新一次
+      updateWorkTime();
+      
+      // 每秒更新一次
+      workTimeInterval = setInterval(updateWorkTime, 1000);
+    }
+    
+    function startCountdown(targetTime) {
+      function updateCountdown() {
+        const now = new Date().getTime();
+        const distance = targetTime - now;
+        
+        if (distance <= 0) {
+          clearInterval(countdownInterval);
+          document.getElementById('countdownDays').textContent = '00';
+          document.getElementById('countdownHours').textContent = '00';
+          document.getElementById('countdownMinutes').textContent = '00';
+          document.getElementById('countdownSeconds').textContent = '00';
+          alert('倒计时结束！');
+          return;
+        }
+        
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        
+        document.getElementById('countdownDays').textContent = days.toString().padStart(days > 99 ? 3 : 2, '0');
+        document.getElementById('countdownHours').textContent = hours.toString().padStart(2, '0');
+        document.getElementById('countdownMinutes').textContent = minutes.toString().padStart(2, '0');
+        document.getElementById('countdownSeconds').textContent = seconds.toString().padStart(2, '0');
+      }
+      
+      // 立即更新一次
+      updateCountdown();
+      
+      // 每秒更新一次
+      countdownInterval = setInterval(updateCountdown, 1000);
+      window.countdownInterval = countdownInterval;
+    }
+    
+    // 初始化应用
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+  <!-- <script src="js/reminders.js"></script> -->
+</body>
+</html>

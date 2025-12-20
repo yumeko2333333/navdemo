@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YumeWork - notes</title>
+  <!-- 第一版: notes1 文件夹可以储图片，其他的功能有问题 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="css/notes.css">
+</head>
+<body>
+  <!-- 顶部标题栏 -->
+  <header class="header-gradient border-b border-slate-700 py-4">
+    <div class="container mx-auto px-4">
+      <div class="header-content flex items-center justify-between">
+        <!-- 左侧标题 -->
+        <div class="flex items-center">
+          <i class="fas fa-moon text-blue-400 mr-3 text-xl"></i>
+          <h1 class="text-xl font-semibold text-blue-400">YumeWork</h1>
+        </div>
+        
+        <!-- 中间导航 -->
+        <nav class="header-nav mx-4">
+          <a href="index.html" class="nav-item mr-1"><i class="fas fa-link mr-1"></i>链接</a>
+          <a href="notes.html" class="nav-item active mr-1"><i class="fas fa-sticky-note mr-1"></i>笔记</a>
+          <a href="#" class="nav-item"><i class="fas fa-cog mr-1"></i>食谱</a>
+        </nav>
+        
+        <!-- 右侧控制区 -->
+        <div class="header-controls flex items-center gap-1">
+          <!-- 当前日期时间 -->
+          <div class="current-datetime">
+            <span class="date" id="currentDate">--</span>
+            <span class="time" id="currentTime">--:--:--</span>
+          </div>
+          
+          <!-- 控制按钮 -->
+          <button id="importBtn" class="control-btn" title="导入">
+            <i class="fas fa-file-import"></i>
+          </button>
+          <button id="exportBtn" class="control-btn" title="导出">
+            <i class="fas fa-file-export"></i>
+          </button>
+          <button id="refreshBtn" class="control-btn" title="从文件刷新数据">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主内容区 -->
+  <main class="flex-1 container mx-auto px-4 py-6">
+    <!-- 搜索框（始终显示） -->
+    <div class="search-container max-w-2xl mx-auto">
+      <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <i class="fas fa-search text-slate-400"></i>
+        </div>
+        <input type="text" id="searchInput" class="search-input pl-10 pr-4 py-2 text-sm w-full" placeholder="搜索笔记...">
+      </div>
+    </div>
+    
+    <!-- 分类横向滚动栏 -->
+    <div class="mb-6 overflow-x-auto scrollbar-hide">
+      <div class="flex space-x-2 pb-2 min-w-max">
+        <div class="category-item px-4 py-2 rounded-full bg-blue-600 text-white flex items-center cursor-pointer whitespace-nowrap" data-category="all">
+          <span>全部笔记</span>
+          <span class="ml-2 bg-blue-500 text-xs px-2 py-0.5 rounded-full" id="all-count">0</span>
+        </div>
+        <!-- 分类将通过JavaScript动态生成 -->
+        <div id="categories-container" class="flex space-x-2"></div>
+        <button id="addCategoryBtn" class="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-full text-sm transition-colors whitespace-nowrap">
+          <i class="fas fa-plus"></i> 添加分类
+        </button>
+      </div>
+    </div>
+    
+    <!-- 排序和视图控制 -->
+    <div class="mb-6 flex flex-wrap justify-between items-center gap-4">
+      <div class="flex items-center gap-2">
+        <span class="text-slate-400 text-sm">排序方式：</span>
+        <select id="sortSelector" class="sort-selector text-sm">
+          <option value="updated-desc">最新更新</option>
+          <option value="updated-asc">最早更新</option>
+          <option value="title-asc">标题 A-Z</option>
+          <option value="title-desc">标题 Z-A</option>
+          <option value="custom">自定义排序</option>
+        </select>
+      </div>
+      
+      <div id="customSortControls" class="hidden">
+        <button id="saveSortBtn" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm">
+          <i class="fas fa-save mr-1"></i> 保存排序
+        </button>
+        <span class="text-slate-400 text-sm ml-2">提示：拖拽笔记可调整顺序</span>
+      </div>
+    </div>
+    
+    <!-- 笔记列表视图 -->
+    <div id="notesListContainer">
+      <!-- 笔记网格 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 notes-container" id="notes-container">
+        <!-- 笔记将通过JavaScript动态生成 -->
+      </div>
+      
+      <!-- 加载更多 -->
+      <div class="mt-8 text-center" id="loadMoreContainer">
+        <button id="loadMoreBtn" class="bg-slate-700 hover:bg-slate-600 text-white px-6 py-2.5 rounded-lg text-sm">
+          <i class="fas fa-arrow-down mr-2"></i> 加载更多
+        </button>
+      </div>
+      
+      <!-- 无结果提示 -->
+      <div id="noResults" class="hidden text-center py-10">
+        <i class="fas fa-search text-slate-400 text-4xl mb-4"></i>
+        <p class="text-slate-400">没有找到匹配的笔记</p>
+      </div>
+    </div>
+    
+    <!-- 笔记详情视图 -->
+    <div id="noteDetailContainer" class="detail-container">
+      <div class="max-w-3xl mx-auto">
+        <div class="detail-header">
+          <h1 class="detail-title" id="detailTitle"></h1>
+          <div class="detail-meta">
+            <span id="detailCategory"><i class="fas fa-folder mr-1"></i></span>
+            <span id="detailCreated"><i class="fas fa-calendar-plus mr-1"></i></span>
+            <span id="detailUpdated"><i class="fas fa-calendar-check mr-1"></i></span>
+          </div>
+        </div>
+        
+        <div class="detail-content" id="detailContent">
+          <!-- 笔记内容将在这里显示 -->
+        </div>
+        
+        <div class="detail-actions">
+          <button id="detailBackBtn" class="detail-btn btn-back">
+            <i class="fas fa-arrow-left mr-1"></i> 返回列表
+          </button>
+          <button id="detailEditBtn" class="detail-btn btn-edit">
+            <i class="fas fa-edit mr-1"></i> 编辑笔记
+          </button>
+          <button id="detailDeleteBtn" class="detail-btn btn-delete">
+            <i class="fas fa-trash mr-1"></i> 删除笔记
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 页脚 -->
+  <footer class="header-gradient border-t border-slate-700 py-4 mt-auto">
+    <div class="container mx-auto px-4">
+      <div class="flex flex-col md:flex-row justify-between items-center">
+        <div class="flex space-x-5 mb-3 md:mb-0">
+          <a href="#" class="text-blue-400 hover:text-blue-300 text-sm"><i class="fas fa-question-circle mr-1.5"></i> 帮助</a>
+          <a href="#" class="text-blue-400 hover:text-blue-300 text-sm"><i class="fas fa-shield-alt mr-1.5"></i> 隐私</a>
+          <a href="#" class="text-blue-400 hover:text-blue-300 text-sm"><i class="fas fa-file-contract mr-1.5"></i> 条款</a>
+        </div>
+        <div class="text-slate-400 text-sm">
+          © 2025 YumeWork | 版权所有
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- 浮动操作按钮 -->
+  <div class="floating-actions">
+    <div class="floating-btn primary-action" id="addNoteBtn" title="添加笔记">
+      <i class="fas fa-plus text-xl"></i>
+    </div>
+  </div>
+
+  <!-- 笔记编辑模态框 -->
+  <div id="noteModal" class="modal">
+    <div class="modal-content">
+      <h2 id="noteModalTitle" class="text-lg font-semibold text-blue-400 mb-4 flex items-center">
+        <i class="fas fa-plus-circle mr-2"></i> 添加新笔记
+      </h2>
+      
+      <div class="space-y-4">
+        <input type="hidden" id="noteId">
+        
+        <div>
+          <label class="block text-slate-400 text-sm mb-2">标题</label>
+          <input type="text" id="noteTitle" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-sm" placeholder="笔记标题">
+        </div>
+        
+        <div>
+          <label class="block text-slate-400 text-sm mb-2">分类</label>
+          <select id="noteCategory" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-sm">
+            <!-- 分类将通过JavaScript动态生成 -->
+          </select>
+        </div>
+        
+        <div>
+          <label class="block text-slate-400 text-sm mb-2">内容</label>
+          <div class="editor-toolbar">
+            <button class="toolbar-btn" data-command="formatBlock" data-value="<h1>" title="标题 1">
+              <i class="fas fa-heading"></i><sub>1</sub>
+            </button>
+            <button class="toolbar-btn" data-command="formatBlock" data-value="<h2>" title="标题 2">
+              <i class="fas fa-heading"></i><sub>2</sub>
+            </button>
+            <button class="toolbar-btn" data-command="formatBlock" data-value="<p>" title="段落">
+              <i class="fas fa-paragraph"></i>
+            </button>
+            <div class="h-6 border-r border-slate-600 mx-1"></div>
+            <button class="toolbar-btn" data-command="bold" title="加粗">
+              <i class="fas fa-bold"></i>
+            </button>
+            <button class="toolbar-btn" data-command="italic" title="斜体">
+              <i class="fas fa-italic"></i>
+            </button>
+            <div class="h-6 border-r border-slate-600 mx-1"></div>
+            <button class="toolbar-btn" data-command="insertUnorderedList" title="无序列表">
+              <i class="fas fa-list-ul"></i>
+            </button>
+            <button class="toolbar-btn" data-command="insertOrderedList" title="有序列表">
+              <i class="fas fa-list-ol"></i>
+            </button>
+            <div class="h-6 border-r border-slate-600 mx-1"></div>
+            <button class="toolbar-btn" data-command="formatBlock" data-value="<pre><code>" title="代码块">
+              <i class="fas fa-code"></i>
+            </button>
+            <button class="toolbar-btn" id="createLinkBtn" title="插入链接">
+              <i class="fas fa-link"></i>
+            </button>
+            <button class="toolbar-btn" id="insertImageBtn" title="插入图片">
+              <i class="fas fa-image"></i>
+            </button>
+          </div>
+          <div id="noteContent" class="note-editor" contenteditable="true"></div>
+          <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+        </div>
+        
+        <div class="flex justify-end space-x-3 pt-2">
+          <button id="deleteNoteBtn" class="hidden px-4 py-2 text-red-300 hover:text-red-100 text-sm">
+            <i class="fas fa-trash mr-1"></i> 删除
+          </button>
+          <button id="cancelNoteBtn" class="px-4 py-2 text-slate-300 hover:text-white text-sm">
+            取消
+          </button>
+          <button id="saveNoteBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">
+            <i class="fas fa-save mr-1"></i> 保存
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 分类编辑模态框 -->
+  <div id="categoryModal" class="modal">
+    <div class="modal-content">
+      <h2 class="text-lg font-semibold text-blue-400 mb-4 flex items-center">
+        <i class="fas fa-edit mr-2"></i> 编辑分类
+      </h2>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-slate-400 text-sm mb-2">分类名称</label>
+          <input type="text" id="categoryName" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-sm" placeholder="输入分类名称">
+        </div>
+        
+        <div class="flex justify-end space-x-3 pt-2">
+          <button id="deleteCategoryBtn" class="px-4 py-2 text-red-300 hover:text-red-100 text-sm">
+            <i class="fas fa-trash mr-1"></i> 删除
+          </button>
+          <button id="cancelCategoryBtn" class="px-4 py-2 text-slate-300 hover:text-white text-sm">
+            取消
+          </button>
+          <button id="saveCategoryBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">
+            保存
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+<script src="js/notes.js"></script>
+</body>
+</html>
