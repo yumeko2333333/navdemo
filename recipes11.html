@@ -472,6 +472,20 @@
         #recipes-container {
             min-height: 300px;
         }
+
+        /* 批量管理按钮 */
+        #batchOperationBtn {
+            padding: 0.5rem 1rem;
+            background-color: #f6e75cc5;
+            color: white;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+        #batchOperationBtn:hover {
+            background-color: #f6df5c91;
+        }
         
         /* 子分类管理按钮样式 */
         #manageSubcategoriesBtn {
@@ -877,7 +891,13 @@
                         </div>
                     </div>
                     
-                    <div class="header-controls flex items-center gap-1">
+                    <div class="header-controls flex items-center gap-1">                        
+                        <!-- 当前日期时间 -->
+                        <div class="current-datetime">
+                            <span class="date" id="currentDate">--</span>
+                            <span class="time" id="currentTime">--:--:--</span>
+                        </div>
+
                         <!-- 批量操作按钮 -->
                         <button id="batchOperationBtn" class="control-btn" title="批量操作">
                             <i class="fas fa-layer-group"></i>
@@ -893,14 +913,8 @@
                             <i class="fas fa-file-export"></i>
                         </button>
                         
-                        <!-- 当前日期时间 -->
-                        <div class="current-datetime">
-                            <span class="date" id="currentDate">--</span>
-                            <span class="time" id="currentTime">--:--:--</span>
-                        </div>
-                        
                         <!-- 随机推荐按钮 -->
-                        <button id="randomizeBtn" class="control-btn" title="智能推荐">
+                        <button id="randomizeBtn" class="control-btn" title="智能推荐" style="display: none;">
                             <i class="fas fa-random"></i>
                         </button>
                     </div>
